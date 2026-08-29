@@ -351,6 +351,29 @@ function App() {
       } catch(e){console.warn('Live data unavailable',e)}
       setLoading(false);
       setLastRefresh(new Date());
+
+      // Step 4: Auto-fetch picks for all managers in current GW for live scoring
+      const le = leagueData.league_entries||[];
+      const curGwMatches = (leagueData.matches||[]).filter(m=>m.event===curEvent);
+      if(curGwMatches.length>0){
+        const pickUpdates = {};
+        const entryIds = new Set();
+        curGwMatches.forEach(m=>{
+          const e1=le.find(e=>e.id===m.league_entry_1);
+          const e2=le.find(e=>e.id===m.league_entry_2);
+          if(e1) entryIds.add(JSON.stringify({leagueEntryId:m.league_entry_1,entryId:e1.entry_id}));
+          if(e2) entryIds.add(JSON.stringify({leagueEntryId:m.league_entry_2,entryId:e2.entry_id}));
+        });
+        for(const raw of entryIds){
+          const {leagueEntryId,entryId:eid} = JSON.parse(raw);
+          const key = leagueEntryId+'-'+curEvent;
+          try {
+            const pd = await api('/entry/'+eid+'/event/'+curEvent);
+            pickUpdates[key] = pd.picks||[];
+          } catch(e){ console.warn('Could not load picks for entry '+eid); }
+        }
+        setPicks(prev=>({...prev,...pickUpdates}));
+      }
     } catch(err) {
       console.error(err);
       setError('Could not load league data. Tap Retry.');
@@ -398,6 +421,19 @@ function App() {
       console.warn('Could not load picks',e);
     }
     setPicksLoading(p=>({...p,[key1]:false,[key2]:false}));
+  }
+
+  // Calculate live score from picks + live data
+  function calcLiveScore(leagueEntryId, eventGw) {
+    const key = leagueEntryId+'-'+eventGw;
+    const teamPicks = picks[key];
+    if(!teamPicks||!liveData) return null;
+    let total = 0;
+    teamPicks.filter(p=>p.position<=11).forEach(p=>{
+      const live = liveData[p.element];
+      total += live?.total_points||live?.event_points||0;
+    });
+    return total;
   }
 
   function renderPlayerRow(pick) {
@@ -498,10 +534,14 @@ function App() {
               {gwMatches.map((m,i)=>{
                 const e1=getManagerById(m.league_entry_1);
                 const e2=getManagerById(m.league_entry_2);
-                const p1=m.league_entry_1_points||0,p2=m.league_entry_2_points||0;
+                const isLive=m.started&&!m.finished;
+                // Use live-calculated scores if available, otherwise API scores
+                const liveP1 = calcLiveScore(m.league_entry_1, m.event);
+                const liveP2 = calcLiveScore(m.league_entry_2, m.event);
+                const p1 = (isLive && liveP1!==null) ? liveP1 : (m.league_entry_1_points||0);
+                const p2 = (isLive && liveP2!==null) ? liveP2 : (m.league_entry_2_points||0);
                 const hWin=p1>p2,aWin=p2>p1,draw=p1===p2;
                 const total=p1+p2||1;
-                const isLive=m.started&&!m.finished;
                 const isExpanded=expandedMatch===i;
                 const key1=m.league_entry_1+'-'+m.event;
                 const key2=m.league_entry_2+'-'+m.event;
