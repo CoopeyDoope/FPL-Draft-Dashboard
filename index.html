@@ -321,36 +321,51 @@ function App() {
   const loadData = useCallback(async ()=>{
     try {
       setLoading(true); setError(null);
-      // Step 1: Get entry details to discover league ID
+      // Step 1: Get entry details to discover ALL league IDs
       const entryData = await api('/entry/'+ENTRY_ID+'/public');
-      // The entry data contains league_set or leagues with the league IDs
-      let leagueId = null;
-      if(entryData.leagues){
-        // Find H2H league (or first league)
-        const h2h = entryData.leagues.find(l=>l.scoring==='h'||l.scoring==='h2h') || entryData.leagues[0];
-        if(h2h) leagueId = h2h.id || h2h.league_id;
-      }
-      if(!leagueId && entryData.league_set){
-        const h2h = entryData.league_set.find(l=>l.scoring==='h'||l.scoring==='h2h') || entryData.league_set[0];
-        if(h2h) leagueId = h2h.id || h2h.league_id;
-      }
-      // Fallback: try entry_id as league_id (some draft leagues use same numbering)
-      if(!leagueId) leagueId = ENTRY_ID;
-      console.log('Discovered league ID:', leagueId);
+      console.log('Entry data:', JSON.stringify(entryData));
+      let leagueIds = [];
+      // Collect all league IDs from whatever structure the API returns
+      const sources = [entryData.leagues, entryData.league_set, entryData.entry?.leagues, entryData.entry?.league_set];
+      sources.forEach(src=>{
+        if(Array.isArray(src)) src.forEach(l=>{
+          const id = l.id||l.league_id||l.league;
+          if(id && !leagueIds.includes(id)) leagueIds.push(id);
+        });
+      });
+      // Also check if entry_id itself works as league_id
+      if(leagueIds.length===0) leagueIds.push(ENTRY_ID);
+      console.log('Found league IDs:', leagueIds);
 
-      // Step 2: Fetch game, bootstrap, and league data
-      const [gameData, bootstrapData, leagueData] = await Promise.all([
+      // Step 2: Fetch ALL leagues and pick the one with the most managers
+      const [gameData, bootstrapData] = await Promise.all([
         api('/game'),
-        api('/bootstrap-static'),
-        api('/league/'+leagueId+'/details')
+        api('/bootstrap-static')
       ]);
+      let bestLeague = null, bestEntries = [], bestStandings = [], bestMatches = [], bestCount = 0;
+      for(const lid of leagueIds){
+        try {
+          const ld = await api('/league/'+lid+'/details');
+          const count = (ld.league_entries||[]).length;
+          console.log('League '+lid+': '+(ld.league?.name||'?')+' ('+count+' managers)');
+          if(count > bestCount){
+            bestCount = count;
+            bestLeague = ld.league;
+            bestEntries = ld.league_entries||[];
+            bestStandings = ld.standings||[];
+            bestMatches = ld.matches||[];
+          }
+        } catch(e){ console.warn('Could not load league '+lid, e); }
+      }
+      if(!bestLeague) throw new Error('No leagues found');
+
       setBootstrap(bootstrapData);
-      setLeague(leagueData.league);
-      setEntries(leagueData.league_entries||[]);
-      setStandings(leagueData.standings||[]);
-      setMatches(leagueData.matches||[]);
+      setLeague(bestLeague);
+      setEntries(bestEntries);
+      setStandings(bestStandings);
+      setMatches(bestMatches);
       const curEvent = gameData.current_event||gameData.next_event||1;
-      const maxE = Math.max(curEvent,...(leagueData.matches||[]).filter(m=>m.started||m.finished).map(m=>m.event),1);
+      const maxE = Math.max(curEvent,...bestMatches.filter(m=>m.started||m.finished).map(m=>m.event),1);
       setMaxGw(maxE);
       setGw(prev=>prev||curEvent);
       // Step 3: Fetch live data for current event
