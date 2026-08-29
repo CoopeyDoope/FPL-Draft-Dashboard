@@ -88,18 +88,46 @@ const {useState,useEffect,useMemo,useCallback,useRef} = React;
 
 // ── Config ─────────────────────────────────────────────────────
 const LEAGUE_ID = 70266;
-const PROXY_BASE = 'https://corsproxy.io/?';
 const API = 'https://draft.premierleague.com/api';
 const COLORS = ['#00ff87','#04f5ff','#ff4655','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#e879f9','#38bdf8','#facc15','#4ade80'];
 const POS_MAP = {1:'GKP',2:'DEF',3:'MID',4:'FWD'};
 const POS_COLORS = {GKP:'#fbbf24',DEF:'#04f5ff',MID:'#a78bfa',FWD:'#ff4655'};
 
-// ── API ────────────────────────────────────────────────────────
+// ── Multi-proxy API with fallback ─────────────────────────────
+const PROXIES = [
+  (url) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+  (url) => 'https://corsproxy.io/?' + encodeURIComponent(url),
+  (url) => 'https://thingproxy.freeboard.io/fetch/' + url,
+  (url) => 'https://proxy.cors.sh/' + url,
+  (url) => url, // direct (in case CORS is allowed)
+];
+let workingProxy = null;
+
 async function api(endpoint) {
-  const url = PROXY_BASE + encodeURIComponent(API + endpoint);
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`${r.status}`);
-  return r.json();
+  const target = API + endpoint;
+  // If we found a working proxy before, try it first
+  if (workingProxy !== null) {
+    try {
+      const url = PROXIES[workingProxy](target);
+      const r = await fetch(url, {signal: AbortSignal.timeout(12000)});
+      if (r.ok) { const d = await r.json(); return d; }
+    } catch(e) { workingProxy = null; }
+  }
+  // Try each proxy in order
+  for (let i = 0; i < PROXIES.length; i++) {
+    try {
+      const url = PROXIES[i](target);
+      const r = await fetch(url, {signal: AbortSignal.timeout(12000)});
+      if (r.ok) {
+        const text = await r.text();
+        const d = JSON.parse(text);
+        workingProxy = i;
+        console.log('Using proxy #' + i);
+        return d;
+      }
+    } catch(e) { continue; }
+  }
+  throw new Error('All proxies failed');
 }
 
 // ── Helpers ────────────────────────────────────────────────────
