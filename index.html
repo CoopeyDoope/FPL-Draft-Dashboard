@@ -87,7 +87,7 @@ td{padding:10px 6px;border-bottom:1px solid var(--surface2)}
 const {useState,useEffect,useMemo,useCallback,useRef} = React;
 
 // ── Config ─────────────────────────────────────────────────────
-const LEAGUE_ID = 79266;
+const ENTRY_ID = 79266; // Your FPL Draft entry/team ID
 const API = 'https://draft.premierleague.com/api';
 const COLORS = ['#00ff87','#04f5ff','#ff4655','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#e879f9','#38bdf8','#facc15','#4ade80'];
 const POS_MAP = {1:'GKP',2:'DEF',3:'MID',4:'FWD'};
@@ -321,10 +321,28 @@ function App() {
   const loadData = useCallback(async ()=>{
     try {
       setLoading(true); setError(null);
+      // Step 1: Get entry details to discover league ID
+      const entryData = await api('/entry/'+ENTRY_ID+'/public');
+      // The entry data contains league_set or leagues with the league IDs
+      let leagueId = null;
+      if(entryData.leagues){
+        // Find H2H league (or first league)
+        const h2h = entryData.leagues.find(l=>l.scoring==='h'||l.scoring==='h2h') || entryData.leagues[0];
+        if(h2h) leagueId = h2h.id || h2h.league_id;
+      }
+      if(!leagueId && entryData.league_set){
+        const h2h = entryData.league_set.find(l=>l.scoring==='h'||l.scoring==='h2h') || entryData.league_set[0];
+        if(h2h) leagueId = h2h.id || h2h.league_id;
+      }
+      // Fallback: try entry_id as league_id (some draft leagues use same numbering)
+      if(!leagueId) leagueId = ENTRY_ID;
+      console.log('Discovered league ID:', leagueId);
+
+      // Step 2: Fetch game, bootstrap, and league data
       const [gameData, bootstrapData, leagueData] = await Promise.all([
         api('/game'),
         api('/bootstrap-static'),
-        api('/league/'+LEAGUE_ID+'/details')
+        api('/league/'+leagueId+'/details')
       ]);
       setBootstrap(bootstrapData);
       setLeague(leagueData.league);
@@ -335,7 +353,7 @@ function App() {
       const maxE = Math.max(curEvent,...(leagueData.matches||[]).filter(m=>m.started||m.finished).map(m=>m.event),1);
       setMaxGw(maxE);
       setGw(prev=>prev||curEvent);
-      // Fetch live data for current event
+      // Step 3: Fetch live data for current event
       try {
         const live = await api('/event/'+curEvent+'/live');
         const liveMap = {};
@@ -424,7 +442,7 @@ function App() {
   if (loading) return (
     <div className="loading-screen">
       <div className="spinner"/>
-      <div style={{color:'var(--text2)',fontSize:14}}>Loading league {LEAGUE_ID}...</div>
+      <div style={{color:'var(--text2)',fontSize:14}}>Finding your league...</div>
     </div>
   );
 
@@ -719,7 +737,7 @@ function App() {
       </div>
 
       <div className="footer">
-        League {LEAGUE_ID} • Auto-refreshes every 60s • Data from FPL Draft API
+        Entry {ENTRY_ID} • Auto-refreshes every 60s • Data from FPL Draft API
       </div>
     </div>
   );
