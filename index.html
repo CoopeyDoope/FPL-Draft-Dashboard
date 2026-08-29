@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>FPL Draft H2H Dashboard</title>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0e17;--surface:#131a2b;--surface2:#1a2340;--accent:#00ff87;--cyan:#04f5ff;--red:#ff4655;--text:#e8edf3;--text2:#7a8ba7;--yellow:#fbbf24}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:2px}
+::-webkit-scrollbar-track{background:var(--bg)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .3s ease}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+.header{padding:16px 16px 0;border-bottom:1px solid var(--surface2)}
+.logo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.logo h1{font-size:20px;font-weight:900;letter-spacing:-.5px}
+.badge-h2h{font-size:11px;color:var(--bg);background:var(--accent);padding:2px 10px;border-radius:20px;font-weight:700}
+.league-name{color:var(--text2);font-size:12px;margin-top:3px}
+.refresh-info{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite;flex-shrink:0}
+.gw-nav{display:flex;align-items:center;gap:6px;margin:12px 0;flex-wrap:wrap}
+.gw-btn{width:30px;height:28px;border-radius:6px;font-weight:700;font-size:11px;transition:all .15s}
+.gw-btn.active{background:var(--accent);color:var(--bg)}
+.gw-btn:not(.active){background:var(--surface);color:var(--text2)}
+.arrow-btn{background:var(--surface);border:1px solid var(--surface2);color:var(--text);border-radius:6px;padding:5px 12px;font-weight:700;font-size:13px}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch}
+.tab-btn{padding:8px 14px;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;border-radius:8px;transition:all .15s;white-space:nowrap}
+.tab-btn.active{background:var(--accent);color:var(--bg)}
+.tab-btn:not(.active){background:transparent;color:var(--text2)}
+.content{padding:16px;max-width:960px;margin:0 auto}
+.match-card{background:var(--surface);border-radius:12px;padding:14px;border:1px solid var(--surface2);position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s}
+.match-card:active{border-color:var(--accent)}
+.match-teams{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.match-team{flex:1;text-align:center}
+.match-team-name{font-size:12px;font-weight:600;margin-bottom:3px}
+.match-score{font-size:32px;font-weight:900;font-variant-numeric:tabular-nums}
+.match-vs{color:var(--text2);font-size:13px;font-weight:700;padding:0 8px;opacity:.4}
+.score-bar{display:flex;height:3px;border-radius:2px;overflow:hidden;background:#1e293b;gap:2px}
+.live-badge{position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:4px}
+.live-text{font-size:10px;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.mvp-banner{background:linear-gradient(135deg,var(--surface),var(--surface2));border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid rgba(0,255,135,.2);display:flex;align-items:center;gap:12px}
+.mvp-label{font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.expand-panel{background:var(--surface2);border-radius:0 0 12px 12px;padding:12px;margin-top:-4px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.player-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(26,35,64,.6);font-size:12px}
+.pos-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;min-width:28px;text-align:center}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:8px 6px;color:var(--text2);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--surface2)}
+td{padding:10px 6px;border-bottom:1px solid var(--surface2)}
+.form-dots{display:flex;gap:3px;justify-content:center}
+.form-dot{width:8px;height:8px;border-radius:50%}
+.stat-card{background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--surface2);flex:1 1 160px;min-width:160px}
+.stat-icon{font-size:24px;margin-bottom:4px}
+.stat-label{color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
+.stat-value{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.stat-sub{color:var(--text2);font-size:11px;margin-top:3px}
+.power-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.power-card{background:var(--surface);border-radius:10px;padding:12px;min-width:110px;border:1px solid var(--surface2);text-align:center;flex-shrink:0}
+.power-card.first{background:linear-gradient(135deg,var(--surface),#1a3320);border-color:rgba(0,255,135,.3)}
+.badge-fire{font-size:11px;background:linear-gradient(135deg,#ff4500,#ff8c00);padding:1px 7px;border-radius:14px;color:#fff;font-weight:700;margin-left:4px;white-space:nowrap}
+.badge-cold{font-size:11px;background:linear-gradient(135deg,#1e3a5f,#4a90d9);padding:1px 7px;border-radius:14px;color:#fff;font-weight:700;margin-left:4px;white-space:nowrap}
+.bench-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.bench-card{background:var(--surface);border-radius:8px;padding:10px;border:1px solid var(--surface2);display:flex;justify-content:space-between;align-items:center}
+.chart-wrap{background:var(--surface);border-radius:12px;padding:12px;border:1px solid var(--surface2)}
+.h2h-cell{padding:6px;text-align:center;font-size:11px}
+.section-title{font-size:15px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid var(--surface2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{background:var(--surface);border:1px solid var(--red);border-radius:12px;padding:20px;text-align:center;margin:20px}
+.retry-btn{background:var(--accent);color:var(--bg);border-radius:8px;padding:10px 24px;font-weight:700;font-size:14px;margin-top:12px}
+.footer{text-align:center;padding:24px 16px;color:var(--text2);font-size:10px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useMemo,useCallback,useRef} = React;
+
+// ── Config ─────────────────────────────────────────────────────
+const LEAGUE_ID = 70266;
+const PROXY_BASE = 'https://corsproxy.io/?';
+const API = 'https://draft.premierleague.com/api';
+const COLORS = ['#00ff87','#04f5ff','#ff4655','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#e879f9','#38bdf8','#facc15','#4ade80'];
+const POS_MAP = {1:'GKP',2:'DEF',3:'MID',4:'FWD'};
+const POS_COLORS = {GKP:'#fbbf24',DEF:'#04f5ff',MID:'#a78bfa',FWD:'#ff4655'};
+
+// ── API ────────────────────────────────────────────────────────
+async function api(endpoint) {
+  const url = PROXY_BASE + encodeURIComponent(API + endpoint);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function getForm(results) {
+  return results.slice(-5);
+}
+function getStreaks(results) {
+  let maxW=0,maxL=0,cw=0,cl=0;
+  results.forEach(r=>{if(r==='W'){cw++;cl=0;maxW=Math.max(maxW,cw)}else if(r==='L'){cl++;cw=0;maxL=Math.max(maxL,cl)}else{cw=0;cl=0}});
+  let current=results[results.length-1],len=0;
+  for(let i=results.length-1;i>=0;i--){if(results[i]===current)len++;else break}
+  return {maxW,maxL,current,len};
+}
+function powerScore(standing) {
+  const recent = (standing.results||[]).slice(-5);
+  const rPts = recent.reduce((s,r)=>s+(r==='W'?3:r==='D'?1:0),0);
+  return (standing.matches_won*3+standing.matches_drawn + rPts*2 + (standing.points_for||0)/20).toFixed(1);
+}
+
+// ── Chart Component ────────────────────────────────────────────
+function ScoreChart({data, labels, names}) {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(()=>{
+    if(!canvasRef.current||!data||!data.length) return;
+    if(chartRef.current) chartRef.current.destroy();
+    chartRef.current = new Chart(canvasRef.current, {
+      type:'line',
+      data:{
+        labels,
+        datasets: names.map((n,i)=>({
+          label:n, data:data.map(d=>d[n]||0),
+          borderColor:COLORS[i%COLORS.length], borderWidth:2, pointRadius:0,
+          tension:.3, fill:false
+        }))
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#7a8ba7',font:{size:10}}}},
+        scales:{
+          x:{ticks:{color:'#7a8ba7',font:{size:10}},grid:{color:'#1a234030'}},
+          y:{ticks:{color:'#7a8ba7',font:{size:10}},grid:{color:'#1a234060'}}
+        }
+      }
+    });
+    return ()=>{if(chartRef.current)chartRef.current.destroy()};
+  },[data,labels,names]);
+  return <canvas ref={canvasRef}/>;
+}
+
+// ── Main App ───────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState('live');
+  const [gw, setGw] = useState(null);
+  const [maxGw, setMaxGw] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [league, setLeague] = useState(null);
+  const [entries, setEntries] = useState([]);
+  const [standings, setStandings] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [bootstrap, setBootstrap] = useState(null);
+  const [liveData, setLiveData] = useState(null);
+  const [picks, setPicks] = useState({});
+  const [expandedMatch, setExpandedMatch] = useState(null);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [picksLoading, setPicksLoading] = useState({});
+
+  // Build results per manager from matches
+  const managerResults = useMemo(()=>{
+    const res = {};
+    entries.forEach(e=>{res[e.id]=[]});
+    const sorted = [...matches].sort((a,b)=>a.event-b.event);
+    sorted.forEach(m=>{
+      if(!m.finished&&!m.started) return;
+      const p1 = m.league_entry_1_points, p2 = m.league_entry_2_points;
+      if(res[m.league_entry_1]) res[m.league_entry_1].push(p1>p2?'W':p1<p2?'L':'D');
+      if(res[m.league_entry_2]) res[m.league_entry_2].push(p2>p1?'W':p2<p1?'L':'D');
+    });
+    return res;
+  },[matches,entries]);
+
+  // Enrich standings with results
+  const enrichedStandings = useMemo(()=>{
+    return standings.map(s=>({...s, results: managerResults[s.league_entry]||[]}))
+      .sort((a,b)=>(b.matches_won*3+b.matches_drawn)-(a.matches_won*3+a.matches_drawn)||(b.points_for||0)-(a.points_for||0));
+  },[standings,managerResults]);
+
+  // GW matches
+  const gwMatches = useMemo(()=>matches.filter(m=>m.event===gw),[matches,gw]);
+
+  // Records
+  const records = useMemo(()=>{
+    let highGW={score:0},lowGW={score:Infinity},bigWin={margin:0};
+    matches.filter(m=>m.finished||m.started).forEach(m=>{
+      const p1=m.league_entry_1_points,p2=m.league_entry_2_points;
+      [{id:m.league_entry_1,s:p1},{id:m.league_entry_2,s:p2}].forEach(t=>{
+        if(t.s>highGW.score)highGW={managerId:t.id,score:t.s,gw:m.event};
+        if(t.s<lowGW.score&&t.s>0)lowGW={managerId:t.id,score:t.s,gw:m.event};
+      });
+      const margin=Math.abs(p1-p2);
+      if(margin>bigWin.margin){
+        const wId=p1>p2?m.league_entry_1:m.league_entry_2;
+        bigWin={managerId:wId,margin,gw:m.event,score:`${Math.max(p1,p2)}-${Math.min(p1,p2)}`};
+      }
+    });
+    if(lowGW.score===Infinity)lowGW={score:0,managerId:null,gw:0};
+    return {highGW,lowGW,bigWin};
+  },[matches]);
+
+  // H2H Grid
+  const h2hGrid = useMemo(()=>{
+    const grid={};
+    entries.forEach(e1=>{grid[e1.id]={};entries.forEach(e2=>{if(e1.id!==e2.id)grid[e1.id][e2.id]={w:0,d:0,l:0}})});
+    matches.filter(m=>m.finished).forEach(m=>{
+      const p1=m.league_entry_1_points,p2=m.league_entry_2_points;
+      const id1=m.league_entry_1,id2=m.league_entry_2;
+      if(!grid[id1]||!grid[id1][id2])return;
+      if(p1>p2){grid[id1][id2].w++;grid[id2][id1].l++}
+      else if(p2>p1){grid[id2][id1].w++;grid[id1][id2].l++}
+      else{grid[id1][id2].d++;grid[id2][id1].d++}
+    });
+    return grid;
+  },[matches,entries]);
+
+  // Cumulative scores for chart
+  const chartData = useMemo(()=>{
+    const cum={};entries.forEach(e=>{cum[e.id]=0});
+    const labels=[];const data=[];
+    for(let g=1;g<=maxGw;g++){
+      const gm=matches.filter(m=>m.event===g&&(m.finished||m.started));
+      const point={};
+      gm.forEach(m=>{
+        cum[m.league_entry_1]=(cum[m.league_entry_1]||0)+m.league_entry_1_points;
+        cum[m.league_entry_2]=(cum[m.league_entry_2]||0)+m.league_entry_2_points;
+      });
+      entries.forEach(e=>{point[getName(e)]=cum[e.id]||0});
+      labels.push('GW'+g);data.push(point);
+    }
+    return {labels,data,names:entries.map(e=>getName(e))};
+  },[matches,entries,maxGw]);
+
+  // Bench wasted
+  const benchWasted = useMemo(()=>{
+    const w={};
+    entries.forEach(e=>{w[e.id]=0});
+    // We calculate from picks data we've loaded
+    Object.entries(picks).forEach(([key,teamPicks])=>{
+      if(!teamPicks||!liveData)return;
+      const benchPlayers=teamPicks.filter(p=>p.position>11);
+      benchPlayers.forEach(p=>{
+        const live=liveData[p.element];
+        if(live)w[key.split('-')[0]]=(w[key.split('-')[0]]||0)+(live.total_points||0);
+      });
+    });
+    return w;
+  },[picks,liveData]);
+
+  // GW MVP
+  const gwMVP = useMemo(()=>{
+    if(!liveData) return null;
+    let best={name:'',points:0,manager:''};
+    Object.entries(picks).forEach(([key,teamPicks])=>{
+      if(!key.endsWith('-'+gw))return;
+      const entryLeagueId=parseInt(key.split('-')[0]);
+      const mgr=entries.find(e=>e.id===entryLeagueId);
+      if(!teamPicks||!mgr)return;
+      teamPicks.filter(p=>p.position<=11).forEach(p=>{
+        const live=liveData[p.element];
+        const pts=live?.total_points||0;
+        if(pts>best.points){
+          const el=bootstrap?.elements?.find(e=>e.id===p.element);
+          best={name:el?.web_name||'Unknown',points:pts,manager:getName(mgr)};
+        }
+      });
+    });
+    return best.points>0?best:null;
+  },[picks,liveData,gw,entries,bootstrap]);
+
+  function getName(entry) {
+    return entry?.entry_name || `${entry?.player_first_name||''} ${entry?.player_last_name||''}`.trim() || 'Manager';
+  }
+  function getShort(entry) {
+    return entry?.short_name || (entry?.entry_name||'???').substring(0,3).toUpperCase();
+  }
+  function getManagerById(id) {
+    return entries.find(e=>e.id===id);
+  }
+
+  // ── Data Fetching ──────────────────────────────────────────
+  const loadData = useCallback(async ()=>{
+    try {
+      setLoading(true); setError(null);
+      const [gameData, bootstrapData, leagueData] = await Promise.all([
+        api('/game'),
+        api('/bootstrap-static'),
+        api('/league/'+LEAGUE_ID+'/details')
+      ]);
+      setBootstrap(bootstrapData);
+      setLeague(leagueData.league);
+      setEntries(leagueData.league_entries||[]);
+      setStandings(leagueData.standings||[]);
+      setMatches(leagueData.matches||[]);
+      const curEvent = gameData.current_event||gameData.next_event||1;
+      const maxE = Math.max(curEvent,...(leagueData.matches||[]).filter(m=>m.started||m.finished).map(m=>m.event),1);
+      setMaxGw(maxE);
+      setGw(prev=>prev||curEvent);
+      // Fetch live data for current event
+      try {
+        const live = await api('/event/'+curEvent+'/live');
+        const liveMap = {};
+        if(live.elements){
+          if(Array.isArray(live.elements)){
+            live.elements.forEach(el=>{liveMap[el.id]=el.stats});
+          } else {
+            Object.entries(live.elements).forEach(([id,el])=>{liveMap[parseInt(id)]=el.stats||el});
+          }
+        }
+        setLiveData(liveMap);
+      } catch(e){console.warn('Live data unavailable',e)}
+      setLoading(false);
+      setLastRefresh(new Date());
+    } catch(err) {
+      console.error(err);
+      setError('Could not load league data. The CORS proxy may be down, or the league ID might be wrong. Try refreshing.');
+      setLoading(false);
+    }
+  },[]);
+
+  useEffect(()=>{loadData()},[loadData]);
+  useEffect(()=>{const iv=setInterval(loadData,60000);return()=>clearInterval(iv)},[loadData]);
+
+  // Fetch picks for a match on expand
+  async function loadMatchPicks(match) {
+    const e1=entries.find(e=>e.id===match.league_entry_1);
+    const e2=entries.find(e=>e.id===match.league_entry_2);
+    if(!e1||!e2)return;
+    const eventGw = match.event;
+    const key1=match.league_entry_1+'-'+eventGw;
+    const key2=match.league_entry_2+'-'+eventGw;
+    if(picks[key1]&&picks[key2])return;
+    setPicksLoading(p=>({...p,[key1]:true,[key2]:true}));
+    try {
+      const [p1,p2] = await Promise.all([
+        api('/entry/'+e1.entry_id+'/event/'+eventGw),
+        api('/entry/'+e2.entry_id+'/event/'+eventGw)
+      ]);
+      // Also fetch live for this GW if not current
+      let ld = liveData;
+      if(eventGw !== gw || !liveData) {
+        try {
+          const live = await api('/event/'+eventGw+'/live');
+          const liveMap = {...liveData};
+          if(live.elements){
+            if(Array.isArray(live.elements)){
+              live.elements.forEach(el=>{liveMap[el.id]=el.stats});
+            } else {
+              Object.entries(live.elements).forEach(([id,el])=>{liveMap[parseInt(id)]=el.stats||el});
+            }
+          }
+          setLiveData(liveMap);
+          ld = liveMap;
+        } catch(e){}
+      }
+      setPicks(prev=>({...prev,[key1]:p1.picks||p1.subs?[...(p1.picks||[])]:[],...{[key2]:p2.picks||p2.subs?[...(p2.picks||[])]:[]}}));
+    } catch(e) {
+      console.warn('Could not load picks',e);
+    }
+    setPicksLoading(p=>({...p,[key1]:false,[key2]:false}));
+  }
+
+  function renderPlayerRow(pick) {
+    if(!bootstrap) return null;
+    const el = bootstrap.elements?.find(e=>e.id===pick.element);
+    if(!el) return null;
+    const pos = POS_MAP[el.element_type]||'?';
+    const pc = POS_COLORS[pos]||'#7a8ba7';
+    const live = liveData?.[pick.element];
+    const pts = live?.total_points ?? live?.event_points ?? '–';
+    const mins = live?.minutes ?? 0;
+    return (
+      <div key={pick.element} className="player-row">
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <span className="pos-badge" style={{color:pc,background:pc+'20'}}>{pos}</span>
+          <span>{el.web_name}</span>
+          {pick.is_captain&&<span style={{fontSize:9,color:'var(--accent)',border:'1px solid var(--accent)',borderRadius:3,padding:'0 3px'}}>C</span>}
+        </div>
+        <span style={{fontWeight:700,color:pts>6?'var(--accent)':pts===0||pts==='–'?'var(--text2)':'var(--text)',fontVariantNumeric:'tabular-nums'}}>{pts}</span>
+      </div>
+    );
+  }
+
+  // ── Render ──────────────────────────────────────────────────
+  if (loading) return (
+    <div className="loading-screen">
+      <div className="spinner"/>
+      <div style={{color:'var(--text2)',fontSize:14}}>Loading league {LEAGUE_ID}...</div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="loading-screen">
+      <div className="error-box">
+        <div style={{fontSize:28,marginBottom:8}}>⚠️</div>
+        <div style={{color:'var(--red)',fontWeight:700,marginBottom:6}}>Connection Error</div>
+        <div style={{color:'var(--text2)',fontSize:13,lineHeight:1.5}}>{error}</div>
+        <button className="retry-btn" onClick={loadData}>Retry</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="header">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10,flexWrap:'wrap',gap:8}}>
+          <div>
+            <div className="logo">
+              <h1>⚽ FPL Draft</h1>
+              <span className="badge-h2h">H2H</span>
+            </div>
+            <div className="league-name">{league?.name||'League '+LEAGUE_ID} — {entries.length} managers</div>
+          </div>
+          <div className="refresh-info">
+            <div className="pulse-dot"/>
+            {lastRefresh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+          </div>
+        </div>
+
+        {/* GW Nav */}
+        <div className="gw-nav">
+          <button className="arrow-btn" onClick={()=>setGw(g=>Math.max(1,g-1))}>◀</button>
+          <div style={{display:'flex',gap:3,flexWrap:'wrap'}}>
+            {Array.from({length:maxGw},(_,i)=>(
+              <button key={i} className={`gw-btn ${gw===i+1?'active':''}`} onClick={()=>setGw(i+1)}>{i+1}</button>
+            ))}
+          </div>
+          <button className="arrow-btn" onClick={()=>setGw(g=>Math.min(maxGw,g+1))}>▶</button>
+          <span style={{color:'var(--text2)',fontSize:12,fontWeight:600}}>GW {gw}</span>
+        </div>
+
+        {/* Tabs */}
+        <div className="tabs">
+          {[['live','Live GW'],['standings','Standings'],['stats','Stats'],['h2h','H2H Grid']].map(([k,l])=>(
+            <button key={k} className={`tab-btn ${tab===k?'active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="content fade-in" key={tab+'-'+gw}>
+
+        {/* ═══ LIVE GW ═══ */}
+        {tab==='live'&&(
+          <div>
+            {gwMVP&&(
+              <div className="mvp-banner">
+                <span style={{fontSize:28}}>⭐</span>
+                <div>
+                  <div className="mvp-label">GW{gw} MVP</div>
+                  <div style={{fontSize:16,fontWeight:800}}>{gwMVP.name} — <span style={{color:'var(--accent)'}}>{gwMVP.points} pts</span></div>
+                  <div style={{fontSize:11,color:'var(--text2)'}}>{gwMVP.manager}</div>
+                </div>
+              </div>
+            )}
+            {gwMatches.length===0&&<div style={{textAlign:'center',color:'var(--text2)',padding:40}}>No matches found for GW{gw}</div>}
+            <div className="grid-2">
+              {gwMatches.map((m,i)=>{
+                const e1=getManagerById(m.league_entry_1);
+                const e2=getManagerById(m.league_entry_2);
+                const p1=m.league_entry_1_points||0,p2=m.league_entry_2_points||0;
+                const hWin=p1>p2,aWin=p2>p1,draw=p1===p2;
+                const total=p1+p2||1;
+                const isLive=m.started&&!m.finished;
+                const isExpanded=expandedMatch===i;
+                const key1=m.league_entry_1+'-'+m.event;
+                const key2=m.league_entry_2+'-'+m.event;
+                return (
+                  <div key={i}>
+                    <div className="match-card" onClick={()=>{
+                      if(isExpanded){setExpandedMatch(null)}
+                      else{setExpandedMatch(i);loadMatchPicks(m)}
+                    }}>
+                      {isLive&&<div className="live-badge"><div className="pulse-dot"/><span className="live-text">Live</span></div>}
+                      <div className="match-teams">
+                        <div className="match-team">
+                          <div className="match-team-name" style={{color:hWin?'var(--accent)':'var(--text2)'}}>{e1?getName(e1):'Team 1'}</div>
+                          <div className="match-score" style={{color:hWin?'var(--accent)':draw?'var(--text)':'var(--text2)'}}>{p1}</div>
+                        </div>
+                        <div className="match-vs">vs</div>
+                        <div className="match-team">
+                          <div className="match-team-name" style={{color:aWin?'var(--accent)':'var(--text2)'}}>{e2?getName(e2):'Team 2'}</div>
+                          <div className="match-score" style={{color:aWin?'var(--accent)':draw?'var(--text)':'var(--text2)'}}>{p2}</div>
+                        </div>
+                      </div>
+                      <div className="score-bar">
+                        <div style={{width:(p1/total*100)+'%',background:hWin?'var(--accent)':draw?'var(--text2)':'var(--red)',transition:'width .5s'}}/>
+                        <div style={{width:(p2/total*100)+'%',background:aWin?'var(--accent)':draw?'var(--text2)':'var(--red)',transition:'width .5s'}}/>
+                      </div>
+                      <div style={{textAlign:'center',marginTop:8,fontSize:10,color:'var(--text2)'}}>Tap for squad breakdown</div>
+                    </div>
+                    {isExpanded&&(
+                      <div className="expand-panel">
+                        {[{leagueEntryId:m.league_entry_1,key:key1},{leagueEntryId:m.league_entry_2,key:key2}].map(({leagueEntryId,key:pk})=>{
+                          const mgr=getManagerById(leagueEntryId);
+                          const teamPicks=picks[pk];
+                          const isLoading=picksLoading[pk];
+                          return(
+                            <div key={pk}>
+                              <div style={{fontSize:11,fontWeight:700,color:'var(--accent)',marginBottom:6}}>{mgr?getName(mgr):'Team'}</div>
+                              {isLoading&&<div style={{color:'var(--text2)',fontSize:11}}>Loading...</div>}
+                              {!isLoading&&!teamPicks&&<div style={{color:'var(--text2)',fontSize:11}}>Unavailable</div>}
+                              {teamPicks&&(
+                                <>
+                                  {teamPicks.filter(p=>p.position<=11).sort((a,b)=>{
+                                    const ea=bootstrap?.elements?.find(e=>e.id===a.element);
+                                    const eb=bootstrap?.elements?.find(e=>e.id===b.element);
+                                    return (ea?.element_type||0)-(eb?.element_type||0);
+                                  }).map(p=>renderPlayerRow(p))}
+                                  <div style={{fontSize:10,color:'var(--text2)',marginTop:6,marginBottom:3,textTransform:'uppercase',letterSpacing:1}}>Bench</div>
+                                  {teamPicks.filter(p=>p.position>11).map(p=>renderPlayerRow(p))}
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ STANDINGS ═══ */}
+        {tab==='standings'&&(
+          <div>
+            <div className="section-title"><span style={{color:'var(--accent)'}}>⚡</span> Power Rankings</div>
+            <div className="power-strip" style={{marginBottom:20}}>
+              {[...enrichedStandings].sort((a,b)=>parseFloat(powerScore(b))-parseFloat(powerScore(a))).map((s,i)=>{
+                const mgr=getManagerById(s.league_entry);
+                const streak=getStreaks(s.results||[]);
+                const badge=streak.current==='W'&&streak.len>=3?'fire':streak.current==='L'&&streak.len>=3?'cold':null;
+                return(
+                  <div key={s.league_entry} className={`power-card ${i===0?'first':''}`}>
+                    <div style={{fontSize:18,fontWeight:900,color:i===0?'var(--accent)':'var(--text2)'}}>#{i+1}</div>
+                    <div style={{fontSize:12,fontWeight:700,marginTop:2,whiteSpace:'nowrap'}}>{mgr?getShort(mgr):'?'}</div>
+                    <div style={{fontSize:18,fontWeight:900,color:'var(--accent)',marginTop:2}}>{powerScore(s)}</div>
+                    {badge==='fire'&&<span className="badge-fire">🔥</span>}
+                    {badge==='cold'&&<span className="badge-cold">🥶</span>}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    {['#','Team','W','D','L','Pts','Total','Form'].map(h=>(
+                      <th key={h} style={{textAlign:h==='Team'?'left':'center'}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {enrichedStandings.map((s,i)=>{
+                    const mgr=getManagerById(s.league_entry);
+                    const hPts=s.matches_won*3+s.matches_drawn;
+                    const streak=getStreaks(s.results||[]);
+                    const badge=streak.current==='W'&&streak.len>=3?'fire':streak.current==='L'&&streak.len>=3?'cold':null;
+                    return(
+                      <tr key={s.league_entry} style={{background:i===0?'rgba(0,255,135,.04)':'transparent'}}>
+                        <td style={{textAlign:'center',fontWeight:800,color:i===0?'var(--accent)':i>=entries.length-1?'var(--red)':'var(--text2)'}}>{i+1}</td>
+                        <td style={{fontWeight:700,whiteSpace:'nowrap',fontSize:12}}>
+                          {mgr?getName(mgr):'Team'}
+                          {badge==='fire'&&<span className="badge-fire">🔥</span>}
+                          {badge==='cold'&&<span className="badge-cold">🥶</span>}
+                        </td>
+                        <td style={{textAlign:'center',color:'var(--accent)',fontWeight:600}}>{s.matches_won}</td>
+                        <td style={{textAlign:'center',color:'var(--text2)'}}>{s.matches_drawn}</td>
+                        <td style={{textAlign:'center',color:'var(--red)'}}>{s.matches_lost}</td>
+                        <td style={{textAlign:'center',fontWeight:900,fontSize:15}}>{hPts}</td>
+                        <td style={{textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{s.points_for||0}</td>
+                        <td style={{textAlign:'center'}}>
+                          <div className="form-dots">
+                            {getForm(s.results||[]).map((r,j)=>(
+                              <div key={j} className="form-dot" style={{background:r==='W'?'var(--accent)':r==='L'?'var(--red)':'#6b7280'}}/>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ STATS ═══ */}
+        {tab==='stats'&&(
+          <div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:10,marginBottom:20}}>
+              <StatCard icon="🏆" label="Highest GW" value={records.highGW.score} sub={`${getName(getManagerById(records.highGW.managerId))} — GW${records.highGW.gw}`} color="var(--accent)"/>
+              <StatCard icon="📉" label="Lowest GW" value={records.lowGW.score||'–'} sub={records.lowGW.managerId?`${getName(getManagerById(records.lowGW.managerId))} — GW${records.lowGW.gw}`:''} color="var(--red)"/>
+              <StatCard icon="💥" label="Biggest Win" value={records.bigWin.score||'–'} sub={records.bigWin.managerId?`${getName(getManagerById(records.bigWin.managerId))} — GW${records.bigWin.gw} (+${records.bigWin.margin})`:''} color="var(--cyan)"/>
+            </div>
+
+            {/* Streaks */}
+            <div style={{display:'flex',flexWrap:'wrap',gap:10,marginBottom:20}}>
+              {(()=>{
+                let bestW={len:0},bestL={len:0};
+                enrichedStandings.forEach(s=>{
+                  const st=getStreaks(s.results||[]);
+                  if(st.maxW>bestW.len)bestW={len:st.maxW,id:s.league_entry};
+                  if(st.maxL>bestL.len)bestL={len:st.maxL,id:s.league_entry};
+                });
+                return(<>
+                  <StatCard icon="🔥" label="Best Win Streak" value={bestW.len+' wins'} sub={getName(getManagerById(bestW.id))} color="var(--accent)"/>
+                  <StatCard icon="🥶" label="Worst Loss Streak" value={bestL.len+' losses'} sub={getName(getManagerById(bestL.id))} color="var(--red)"/>
+                </>);
+              })()}
+            </div>
+
+            {/* Bench Wasted */}
+            <div className="section-title">🪑 Bench Points Wasted (GW{gw})</div>
+            <div className="bench-grid" style={{marginBottom:20}}>
+              {entries.map(e=>(
+                <div key={e.id} className="bench-card">
+                  <span style={{fontSize:12,fontWeight:600}}>{getShort(e)}</span>
+                  <span style={{fontSize:18,fontWeight:900,color:'var(--red)',fontVariantNumeric:'tabular-nums'}}>{benchWasted[e.id]||0}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Chart */}
+            <div className="section-title">📈 Season Scoring</div>
+            <div className="chart-wrap">
+              <div style={{height:280}}>
+                {chartData.data.length>0 ? (
+                  <ScoreChart data={chartData.data} labels={chartData.labels} names={chartData.names}/>
+                ) : (
+                  <div style={{color:'var(--text2)',textAlign:'center',paddingTop:100}}>No data yet</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ H2H GRID ═══ */}
+        {tab==='h2h'&&(
+          <div>
+            <div className="section-title">Head-to-Head Records</div>
+            <div className="table-wrap">
+              <table style={{fontSize:11}}>
+                <thead>
+                  <tr>
+                    <th style={{position:'sticky',left:0,background:'var(--bg)',zIndex:2}}></th>
+                    {entries.map(e=><th key={e.id} style={{textAlign:'center',minWidth:55}}>{getShort(e)}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.map(e1=>(
+                    <tr key={e1.id}>
+                      <td style={{fontWeight:700,color:'var(--accent)',position:'sticky',left:0,background:'var(--surface)',zIndex:1,whiteSpace:'nowrap',fontSize:11}}>{getShort(e1)}</td>
+                      {entries.map(e2=>{
+                        if(e1.id===e2.id) return <td key={e2.id} className="h2h-cell" style={{background:'var(--surface2)'}}>—</td>;
+                        const rec=h2hGrid[e1.id]?.[e2.id];
+                        if(!rec)return <td key={e2.id} className="h2h-cell">-</td>;
+                        const bg=rec.w>rec.l?'rgba(0,255,135,.08)':rec.l>rec.w?'rgba(255,70,85,.08)':'transparent';
+                        return(
+                          <td key={e2.id} className="h2h-cell" style={{background:bg}}>
+                            <span style={{color:'var(--accent)',fontWeight:700}}>{rec.w}</span>
+                            <span style={{color:'var(--text2)',margin:'0 1px'}}>-</span>
+                            <span style={{color:'var(--text2)'}}>{rec.d}</span>
+                            <span style={{color:'var(--text2)',margin:'0 1px'}}>-</span>
+                            <span style={{color:'var(--red)',fontWeight:700}}>{rec.l}</span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{marginTop:8,fontSize:11,color:'var(--text2)'}}>W - D - L from row team's perspective</div>
+          </div>
+        )}
+      </div>
+
+      <div className="footer">
+        League {LEAGUE_ID} • Auto-refreshes every 60s • Data from FPL Draft API
+      </div>
+    </div>
+  );
+}
+
+function StatCard({icon,label,value,sub,color='var(--accent)'}) {
+  return(
+    <div className="stat-card">
+      <div className="stat-icon">{icon}</div>
+      <div className="stat-label">{label}</div>
+      <div className="stat-value" style={{color}}>{value}</div>
+      {sub&&<div className="stat-sub">{sub}</div>}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>
