@@ -352,7 +352,7 @@ function App() {
       setLastRefresh(new Date());
     } catch(err) {
       console.error(err);
-      setError('Could not load league data. The CORS proxy may be down, or the league ID might be wrong. Try refreshing.');
+      setError('Could not connect to the FPL Draft API. All proxy routes were tried. Tap Retry — it often works on a second attempt.');
       setLoading(false);
     }
   },[]);
