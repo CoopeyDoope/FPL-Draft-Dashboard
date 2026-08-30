@@ -123,16 +123,20 @@ async function api(ep){
 // ═══ AUTO-SUB ENGINE ════════════════════════════════════════
 function calcTeam(picks, live, bs){
   if(!picks||!live||!bs) return null;
+  // Figure out which teams have kicked off (any player from that team has minutes > 0)
+  const teamsPlayed=new Set();
+  if(bs.elements){bs.elements.forEach(el=>{const lv=live[el.id];if(lv&&(lv.minutes>0))teamsPlayed.add(el.team)})}
   const info = p=>{
     const el=bs.elements?.find(e=>e.id===p.element);
     const lv=live[p.element];
-    return{...p,type:el?.element_type||0,mins:lv?.minutes||0,pts:lv?.total_points||0,name:el?.web_name||'?',subIn:false,subOut:false};
+    return{...p,type:el?.element_type||0,team:el?.team||0,mins:lv?.minutes||0,pts:lv?.total_points||0,name:el?.web_name||'?',subIn:false,subOut:false};
   };
   const st=picks.filter(p=>p.position<=11).map(info);
   const bn=picks.filter(p=>p.position>11).sort((a,b)=>a.position-b.position).map(info);
   const usedB=new Set(), outS=new Set();
   for(let si=0;si<st.length;si++){
-    if(st[si].mins>0) continue;
+    if(st[si].mins>0) continue; // played, no sub needed
+    if(!teamsPlayed.has(st[si].team)) continue; // team hasn't kicked off yet, don't sub
     for(let bi=0;bi<bn.length;bi++){
       if(usedB.has(bi)||bn[bi].mins===0) continue;
       if((st[si].type===1)!==(bn[bi].type===1)) continue;
@@ -148,8 +152,7 @@ function calcTeam(picks, live, bs){
     }
   }
   let total=0;st.forEach((s,i)=>{if(!outS.has(i))total+=s.pts});usedB.forEach(i=>{total+=bn[i].pts});
-  let wasted=0;bn.forEach((b,i)=>{if(!usedB.has(i))wasted+=b.pts});
-  return{starters:st,bench:bn,total,wasted};
+  return{starters:st,bench:bn,total};
 }
 
 // ═══ HELPERS ════════════════════════════════════════════════
@@ -177,8 +180,6 @@ function App(){
   const [picksLoading,setPicksLoading]=useState({});
   const [lastRefresh,setLastRefresh]=useState(null);
   const [curEvent,setCurEvent]=useState(1);
-  const [benchLoading,setBenchLoading]=useState(false);
-  const [benchAllLoaded,setBenchAllLoaded]=useState(false);
 
   // ── Load ───────────────────────────────────────────────────
   const loadData = useCallback(async(isRefresh)=>{
@@ -232,16 +233,6 @@ function App(){
   }
 
   // ── Load all bench data ────────────────────────────────────
-  async function loadAllBench(){
-    setBenchLoading(true);
-    const finGWs=[...new Set(allMatches.filter(m=>m.finished).map(m=>m.event))].sort((a,b)=>a-b);
-    for(const g of finGWs){
-      try{const lv=await api('/event/'+g+'/live');const map={};if(lv.elements){if(Array.isArray(lv.elements))lv.elements.forEach(el=>{map[el.id]=el.stats});else Object.entries(lv.elements).forEach(([id,el])=>{map[parseInt(id)]=el.stats||el})}setLiveData(prev=>({...prev,...map}))}catch(e){}
-      for(const e of entries){const key=e.id+'-'+g;if(picks[key])continue;try{const pd=await api('/entry/'+e.entry_id+'/event/'+g);setPicks(prev=>({...prev,[key]:pd.picks||[]}))}catch(ex){}}
-    }
-    setBenchAllLoaded(true);setBenchLoading(false);
-  }
-
   // ── Derived ────────────────────────────────────────────────
   const gwMatches=useMemo(()=>allMatches.filter(m=>m.event===gw),[allMatches,gw]);
   const finishedMatches=useMemo(()=>allMatches.filter(m=>m.finished),[allMatches]);
@@ -306,17 +297,6 @@ function App(){
     });
     return g;
   },[finishedMatches,entries]);
-
-  const benchWasted=useMemo(()=>{
-    const w={};entries.forEach(e=>{w[e.id]=0});
-    const finGWs=[...new Set(finishedMatches.map(m=>m.event))];
-    finGWs.forEach(g=>{entries.forEach(e=>{
-      const p=picks[e.id+'-'+g];if(!p)return;
-      const team=calcTeam(p,liveData,bootstrap);
-      if(team)w[e.id]+=team.wasted;
-    })});
-    return w;
-  },[entries,finishedMatches,picks,liveData,bootstrap]);
 
   function getLive(lid,ev){const p=picks[lid+'-'+ev];if(!p)return null;const t=calcTeam(p,liveData,bootstrap);return t?t.total:null}
   function mgr(id){return entries.find(e=>e.id===id)}
@@ -416,7 +396,6 @@ function App(){
                           {team.starters.sort((a,b)=>a.type-b.type).map((p,j)=><PR key={j} p={p}/>)}
                           <div style={{fontSize:9,color:'var(--t3)',marginTop:6,marginBottom:2,textTransform:'uppercase',letterSpacing:.8}}>Bench</div>
                           {team.bench.map((p,j)=><PR key={j} p={p}/>)}
-                          {team.wasted>0&&<div style={{fontSize:10,color:'var(--red)',marginTop:4}}>🪑 {team.wasted} pts on bench</div>}
                         </>}
                       </div>;
                     })}
@@ -459,12 +438,6 @@ function App(){
               <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">📉</div><div className="stat-label">Lowest GW</div><div className="stat-val" style={{color:'var(--red)'}}>{records.lo.s}</div><div className="stat-sub">{records.lo.id?displayName(mgr(records.lo.id)):''}{records.lo.gw?' — GW'+records.lo.gw:''}</div></div>
               <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">💥</div><div className="stat-label">Biggest Win</div><div className="stat-val" style={{color:'var(--cyan)'}}>{records.big.sc||'–'}</div><div className="stat-sub">{records.big.id?displayName(mgr(records.big.id)):''}{records.big.gw?' — GW'+records.big.gw:''}</div></div>
             </div>
-            <div className="section">🪑 Bench Points Wasted</div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:6,marginBottom:6}}>
-              {entries.filter(e=>!isAvg(e)).sort((a,b)=>(benchWasted[b.id]||0)-(benchWasted[a.id]||0)).map(e=><div key={e.id} className="bench-row"><span style={{fontWeight:600}}>{getShort(e)}</span><span style={{fontSize:17,fontWeight:900,color:'var(--red)',fontVariantNumeric:'tabular-nums'}}>{benchWasted[e.id]||0}</span></div>)}
-            </div>
-            {!benchAllLoaded&&<button className="load-btn" onClick={loadAllBench} disabled={benchLoading}>{benchLoading?'Loading all gameweeks...':'Load full season bench data'}</button>}
-            {benchAllLoaded&&<div style={{fontSize:10,color:'var(--t2)',textAlign:'center',marginTop:4}}>✓ All completed GWs loaded</div>}
           </>}
         </div>}
 
