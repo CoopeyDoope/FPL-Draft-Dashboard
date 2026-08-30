@@ -102,15 +102,23 @@ const POS_C = {GKP:'#fbbf24',DEF:'#04f5ff',MID:'#a78bfa',FWD:'#ff4757'};
 // ═══ MULTI-PROXY API ════════════════════════════════════════
 const PROXIES = [
   u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
-  u=>'https://corsproxy.io/?'+encodeURIComponent(u),
+  u=>'https://api.codetabs.com/v1/proxy/?quest='+encodeURIComponent(u),
   u=>'https://thingproxy.freeboard.io/fetch/'+u,
+  u=>'https://corsfix.com/'+u,
   u=>u
 ];
 let px = null;
 async function api(ep){
   const t=API_BASE+ep;
-  if(px!==null){try{const r=await fetch(PROXIES[px](t),{signal:AbortSignal.timeout(15000)});if(r.ok)return r.json()}catch(e){px=null}}
-  for(let i=0;i<PROXIES.length;i++){try{const r=await fetch(PROXIES[i](t),{signal:AbortSignal.timeout(15000)});if(r.ok){px=i;return r.json()}}catch(e){}}
+  // Try cached working proxy first
+  if(px!==null){try{const r=await fetch(PROXIES[px](t),{signal:AbortSignal.timeout(20000)});if(r.ok){const j=await r.json();return j}}catch(e){px=null}}
+  // Try each proxy
+  for(let i=0;i<PROXIES.length;i++){
+    try{
+      const r=await fetch(PROXIES[i](t),{signal:AbortSignal.timeout(20000)});
+      if(r.ok){const txt=await r.text();try{const j=JSON.parse(txt);px=i;console.log('Proxy #'+i+' working');return j}catch(e){continue}}
+    }catch(e){continue}
+  }
   throw new Error('All proxies failed');
 }
 
