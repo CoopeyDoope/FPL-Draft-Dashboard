@@ -157,9 +157,9 @@ function calcTeam(picks, live, bs){
 
 // ═══ HELPERS ════════════════════════════════════════════════
 function isAvg(e){return((e?.player_first_name||'')+(e?.player_last_name||'')+(e?.entry_name||'')).toLowerCase().includes('average')||(e?.entry_name==='Manager')}
-function getName(e){return e?.entry_name||`${e?.player_first_name||''} ${e?.player_last_name||''}`.trim()||'Team'}
-function getShort(e){return e?.short_name||getName(e).substring(0,3).toUpperCase()}
-function displayName(e){return isAvg(e)?'League Average':getName(e)}
+function getName(e){return e?.entry_name||`${e?.player_first_name||''} ${e?.player_last_name||''}`.trim()||'Unknown'}
+function getShort(e){return isAvg(e)?'AVG':e?.short_name||getName(e).substring(0,3).toUpperCase()}
+function displayName(e){return isAvg(e)?'Average':getName(e)}
 
 // ═══ APP ════════════════════════════════════════════════════
 function App(){
@@ -298,7 +298,29 @@ function App(){
     return g;
   },[finishedMatches,entries]);
 
-  function getLive(lid,ev){const p=picks[lid+'-'+ev];if(!p)return null;const t=calcTeam(p,liveData,bootstrap);return t?t.total:null}
+  function getLive(lid,ev){
+    const e=mgr(lid);
+    if(e&&isAvg(e)){
+      // Calculate live average from all non-average teams in this GW
+      const gwMs=allMatches.filter(m=>m.event===ev);
+      const realIds=new Set();
+      gwMs.forEach(m=>{
+        const e1=mgr(m.league_entry_1),e2=mgr(m.league_entry_2);
+        if(e1&&!isAvg(e1))realIds.add(m.league_entry_1);
+        if(e2&&!isAvg(e2))realIds.add(m.league_entry_2);
+      });
+      let sum=0,count=0;
+      realIds.forEach(id=>{
+        const p=picks[id+'-'+ev];
+        if(!p)return;
+        const t=calcTeam(p,liveData,bootstrap);
+        if(t){sum+=t.total;count++}
+      });
+      return count>0?Math.round(sum/count):null;
+    }
+    const p=picks[lid+'-'+ev];if(!p)return null;
+    const t=calcTeam(p,liveData,bootstrap);return t?t.total:null;
+  }
   function mgr(id){return entries.find(e=>e.id===id)}
 
   // ── Player Row ─────────────────────────────────────────────
@@ -376,9 +398,9 @@ function App(){
                   <div className="match" onClick={()=>{if(isExp)setExpanded(null);else{setExpanded(i);loadMatchPicks(m)}}}>
                     {isLive&&<div className="live-dot"><div className="pulse"/><span className="live-txt">Live</span></div>}
                     <div className="match-teams">
-                      <div className="match-side"><div className={'match-name'+(av1?' avg-team':'')} style={{color:hW?'var(--acc)':'var(--t2)'}}>{av1?'League Average':getName(e1)}</div><div className="match-pts" style={{color:hW?'var(--acc)':dr?'var(--text)':'var(--t2)'}}>{p1}</div></div>
+                      <div className="match-side"><div className={'match-name'+(av1?' avg-team':'')} style={{color:hW?'var(--acc)':'var(--t2)'}}>{displayName(e1)}</div><div className="match-pts" style={{color:hW?'var(--acc)':dr?'var(--text)':'var(--t2)'}}>{p1}</div></div>
                       <div className="match-vs">vs</div>
-                      <div className="match-side"><div className={'match-name'+(av2?' avg-team':'')} style={{color:aW?'var(--acc)':'var(--t2)'}}>{av2?'League Average':getName(e2)}</div><div className="match-pts" style={{color:aW?'var(--acc)':dr?'var(--text)':'var(--t2)'}}>{p2}</div></div>
+                      <div className="match-side"><div className={'match-name'+(av2?' avg-team':'')} style={{color:aW?'var(--acc)':'var(--t2)'}}>{displayName(e2)}</div><div className="match-pts" style={{color:aW?'var(--acc)':dr?'var(--text)':'var(--t2)'}}>{p2}</div></div>
                     </div>
                     <div className="bar-track"><div className="bar-fill" style={{width:(p1/tot*100)+'%',background:hW?'var(--acc)':dr?'var(--t2)':'var(--red)'}}/><div className="bar-fill" style={{width:(p2/tot*100)+'%',background:aW?'var(--acc)':dr?'var(--t2)':'var(--red)'}}/></div>
                     <div className="tap-hint">Tap for squad breakdown</div>
@@ -389,7 +411,7 @@ function App(){
                       const team=tp?calcTeam(tp,liveData,bootstrap):null;
                       const av=mg&&isAvg(mg);
                       return<div key={k}>
-                        <div className="exp-title" style={av?{fontStyle:'italic',opacity:.5}:{}}>{av?'League Average':mg?getName(mg):'Team'}</div>
+                        <div className="exp-title" style={av?{fontStyle:'italic',opacity:.5}:{}}>{av?'Average':mg?getName(mg):'Unknown'}</div>
                         {ld&&<div style={{color:'var(--t2)',fontSize:10}}>Loading...</div>}
                         {!ld&&!team&&<div style={{color:'var(--t2)',fontSize:10}}>Unavailable</div>}
                         {team&&<>
@@ -415,7 +437,7 @@ function App(){
               const e=mgr(s.league_entry),av=e&&isAvg(e),pts=s.matches_won*3+s.matches_drawn,form=(s.results||[]).slice(-5);
               return<tr key={s.league_entry} style={{background:i===0?'rgba(0,255,135,.03)':'transparent'}}>
                 <td style={{textAlign:'center',fontWeight:800,color:i===0?'var(--acc)':i>=entries.length-1?'var(--red)':'var(--t2)'}}>{i+1}</td>
-                <td style={{fontWeight:700,fontSize:11,whiteSpace:'nowrap'}} className={av?'avg-team':''}>{av?'League Average':getName(e)}</td>
+                <td style={{fontWeight:700,fontSize:11,whiteSpace:'nowrap'}} className={av?'avg-team':''}>{displayName(e)}</td>
                 <td style={{textAlign:'center',color:'var(--acc)',fontWeight:600}}>{s.matches_won}</td>
                 <td style={{textAlign:'center',color:'var(--t2)'}}>{s.matches_drawn}</td>
                 <td style={{textAlign:'center',color:'var(--red)'}}>{s.matches_lost}</td>
