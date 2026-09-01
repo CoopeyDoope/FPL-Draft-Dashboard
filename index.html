@@ -184,6 +184,7 @@ function App(){
   const [picksLoading,setPicksLoading]=useState({});
   const [lastRefresh,setLastRefresh]=useState(null);
   const [curEvent,setCurEvent]=useState(1);
+  const [transactions,setTransactions]=useState([]);
 
   // ── Load ───────────────────────────────────────────────────
   const loadData = useCallback(async(isRefresh)=>{
@@ -216,6 +217,8 @@ function App(){
       });
       for(const raw of eids){const{lid,eid}=JSON.parse(raw);try{const pd=await api('/entry/'+eid+'/event/'+cur);pu[lid+'-'+cur]=pd.picks||[]}catch(e){}}
       setPicks(prev=>({...prev,...pu}));
+      // Fetch transactions (waivers)
+      try{const tx=await api('/league/'+LEAGUE_ID+'/transactions');setTransactions(tx||[])}catch(e){console.warn('Transactions unavailable');setTransactions([])}
       setLoading(false);setRefreshing(false);setLastRefresh(new Date());
     }catch(err){console.error(err);setError('Could not load league data. Tap Retry.');setLoading(false);setRefreshing(false)}
   },[]);
@@ -293,6 +296,32 @@ function App(){
     });
     return{hi,lo,big,close,mostWins,bestAvg,longestW,longestL};
   },[finishedMatches,enrichedStandings]);
+
+  // Waiver stats
+  const waiverStats=useMemo(()=>{
+    if(!transactions||!transactions.length) return null;
+    // Count successful waivers per manager (entry_id -> count)
+    const counts={};
+    transactions.forEach(tx=>{
+      // Successful waiver: kind='w' and result='a' (accepted)
+      if(tx.kind==='w'&&tx.result==='a'){
+        const eid=tx.entry||tx.league_entry;
+        if(eid) counts[eid]=(counts[eid]||0)+1;
+      }
+    });
+    // Map entry_ids to league_entry ids
+    const mapped={};
+    Object.entries(counts).forEach(([eid,count])=>{
+      // Try matching by entry_id first, then by league_entry id
+      const e=entries.find(en=>en.entry_id===parseInt(eid))||entries.find(en=>en.id===parseInt(eid));
+      if(e&&!isAvg(e)) mapped[e.id]=(mapped[e.id]||0)+count;
+    });
+    if(Object.keys(mapped).length===0) return null;
+    // Find the manager with most successful waivers
+    let topId=null,topCount=0;
+    Object.entries(mapped).forEach(([id,c])=>{if(c>topCount){topCount=c;topId=parseInt(id)}});
+    return{topId,topCount,all:mapped};
+  },[transactions,entries]);
 
   const gwAwards=useMemo(()=>{
     if(!gwIsFinished)return null;
@@ -493,6 +522,9 @@ function App(){
               <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🔥</div><div className="stat-label">Longest Win Streak</div><div className="stat-val" style={{color:'var(--acc)'}}>{records.longestW.l} {records.longestW.l===1?'win':'wins'}</div><div className="stat-sub">{displayName(mgr(records.longestW.id))}</div></div>
               <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🥶</div><div className="stat-label">Longest Loss Streak</div><div className="stat-val" style={{color:'var(--red)'}}>{records.longestL.l} {records.longestL.l===1?'loss':'losses'}</div><div className="stat-sub">{displayName(mgr(records.longestL.id))}</div></div>
             </div>
+            {waiverStats&&<div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
+              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🔄</div><div className="stat-label">Most Waivers</div><div className="stat-val" style={{color:'var(--cyan)'}}>{waiverStats.topCount}</div><div className="stat-sub">{displayName(mgr(waiverStats.topId))}</div></div>
+            </div>}
           </>}
         </div>}
 
