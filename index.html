@@ -539,17 +539,24 @@ function App(){
           <div className="section">📋 Classic Standings</div>
           {gwIsLive&&<div style={{fontSize:10,color:'var(--acc)',marginBottom:8,display:'flex',alignItems:'center',gap:4}}><div className="pulse" style={{width:5,height:5}}/> Includes live GW{gw} points</div>}
           <div className="tbl-wrap"><table><thead><tr>
-            {['#','Team','Total Pts'].map(h=><th key={h} style={{textAlign:h==='Team'?'left':'center'}}>{h}</th>)}
+            {['#','Team','Total Pts','H2H','vs H2H'].map(h=><th key={h} style={{textAlign:h==='Team'?'left':'center'}}>{h}</th>)}
           </tr></thead><tbody>
-            {classicStandings.map((cs,i)=>{
-              const av=isAvg(cs.entry);
+            {classicStandings.filter(cs=>!isAvg(cs.entry)).map((cs,i)=>{
+              // Find this team's H2H rank
+              const h2hIdx=enrichedStandings.findIndex(s=>s.league_entry===cs.entry.id);
+              const h2hRank=h2hIdx>=0?h2hIdx+1:'–';
+              const classicRank=i+1;
+              const diff=typeof h2hRank==='number'?h2hRank-classicRank:0;
               return<tr key={cs.entry.id} style={{background:i===0?'rgba(0,255,135,.03)':'transparent'}}>
-                <td style={{textAlign:'center',fontWeight:800,color:i===0?'var(--acc)':i>=classicStandings.length-1?'var(--red)':'var(--t2)'}}>{i+1}</td>
-                <td style={{fontWeight:700,fontSize:12,whiteSpace:'nowrap'}} className={av?'avg-team':''}>{displayName(cs.entry)}</td>
+                <td style={{textAlign:'center',fontWeight:800,color:i===0?'var(--acc)':i>=classicStandings.filter(c=>!isAvg(c.entry)).length-1?'var(--red)':'var(--t2)'}}>{classicRank}</td>
+                <td style={{fontWeight:700,fontSize:12,whiteSpace:'nowrap'}}>{displayName(cs.entry)}</td>
                 <td style={{textAlign:'center',fontWeight:900,fontSize:16,fontVariantNumeric:'tabular-nums'}}>{cs.total}</td>
+                <td style={{textAlign:'center',fontVariantNumeric:'tabular-nums',color:'var(--t2)',fontWeight:600}}>{h2hRank}</td>
+                <td style={{textAlign:'center',fontWeight:700,fontSize:12,color:diff>0?'var(--acc)':diff<0?'var(--red)':'var(--t2)'}}>{diff>0?'▲'+diff:diff<0?'▼'+Math.abs(diff):'–'}</td>
               </tr>;
             })}
           </tbody></table></div>
+          <div style={{fontSize:10,color:'var(--t3)',marginTop:6}}>vs H2H: ▲ = ranked higher in Classic than H2H</div>
         </div>}
 
         {/* ═══ STATS ═══ */}
