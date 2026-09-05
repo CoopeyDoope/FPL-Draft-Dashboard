@@ -156,7 +156,17 @@ function calcTeam(picks, live, bs){
 }
 
 // ═══ HELPERS ════════════════════════════════════════════════
-function isAvg(e){return((e?.player_first_name||'')+(e?.player_last_name||'')+(e?.entry_name||'')).toLowerCase().includes('average')||(e?.entry_name==='Manager')}
+function isAvg(e){
+  if(!e) return false;
+  const combined=((e.player_first_name||'')+(e.player_last_name||'')+(e.entry_name||'')).toLowerCase();
+  if(combined.includes('average')) return true;
+  if(e.entry_name==='Manager') return true;
+  // Entries with no name at all are the Average team
+  if(!e.entry_name && !e.player_first_name && !e.player_last_name) return true;
+  const name = (e.entry_name||'').trim();
+  if(!name || name==='Manager' || name==='AVERAGE') return true;
+  return false;
+}
 function getName(e){
   if(!e) return 'Unknown';
   if(isAvg(e)) return 'Average';
@@ -184,7 +194,6 @@ function App(){
   const [picksLoading,setPicksLoading]=useState({});
   const [lastRefresh,setLastRefresh]=useState(null);
   const [curEvent,setCurEvent]=useState(1);
-  const [transactions,setTransactions]=useState([]);
 
   // ── Load ───────────────────────────────────────────────────
   const loadData = useCallback(async(isRefresh)=>{
@@ -217,8 +226,6 @@ function App(){
       });
       for(const raw of eids){const{lid,eid}=JSON.parse(raw);try{const pd=await api('/entry/'+eid+'/event/'+cur);pu[lid+'-'+cur]=pd.picks||[]}catch(e){}}
       setPicks(prev=>({...prev,...pu}));
-      // Fetch transactions (waivers)
-      try{const tx=await api('/league/'+LEAGUE_ID+'/transactions');setTransactions(tx||[])}catch(e){console.warn('Transactions unavailable');setTransactions([])}
       setLoading(false);setRefreshing(false);setLastRefresh(new Date());
     }catch(err){console.error(err);setError('Could not load league data. Tap Retry.');setLoading(false);setRefreshing(false)}
   },[]);
@@ -259,13 +266,62 @@ function App(){
 
   const enrichedStandings=useMemo(()=>{
     return standings.map(s=>{
-      const results=managerResults[s.league_entry]||[];
+      const results=[...(managerResults[s.league_entry]||[])];
       const finMs=finishedMatches.filter(m=>m.league_entry_1===s.league_entry||m.league_entry_2===s.league_entry);
-      let pf=0,pa=0;finMs.forEach(m=>{const is1=m.league_entry_1===s.league_entry;pf+=is1?m.league_entry_1_points:m.league_entry_2_points;pa+=is1?m.league_entry_2_points:m.league_entry_1_points});
-      const gp=finMs.length||1;
-      return{...s,results,pf,pa,diff:pf-pa,avg:(pf/gp).toFixed(1),gp};
-    }).sort((a,b)=>(b.matches_won*3+b.matches_drawn)-(a.matches_won*3+a.matches_drawn)||b.pf-a.pf);
-  },[standings,managerResults,finishedMatches]);
+      let pf=0,pa=0,w=s.matches_won||0,d=s.matches_drawn||0,l=s.matches_lost||0;
+      finMs.forEach(m=>{const is1=m.league_entry_1===s.league_entry;pf+=is1?m.league_entry_1_points:m.league_entry_2_points;pa+=is1?m.league_entry_2_points:m.league_entry_1_points});
+      // Project current live GW into standings
+      const liveMs=gwMatches.filter(m=>(m.league_entry_1===s.league_entry||m.league_entry_2===s.league_entry)&&m.started&&!m.finished);
+      let livePF=0,livePA=0;
+      liveMs.forEach(m=>{
+        const is1=m.league_entry_1===s.league_entry;
+        const myId=is1?m.league_entry_1:m.league_entry_2;
+        const oppId=is1?m.league_entry_2:m.league_entry_1;
+        const myLive=getLive(myId,m.event);
+        const oppLive=getLive(oppId,m.event);
+        const myPts=myLive!==null?myLive:(is1?m.league_entry_1_points:m.league_entry_2_points)||0;
+        const oppPts=oppLive!==null?oppLive:(is1?m.league_entry_2_points:m.league_entry_1_points)||0;
+        livePF+=myPts;livePA+=oppPts;
+        if(myPts>oppPts){w++;results.push('W')}
+        else if(myPts<oppPts){l++;results.push('L')}
+        else{d++;results.push('D')}
+      });
+      const totalPF=pf+livePF,totalPA=pa+livePA;
+      const gp=finMs.length+liveMs.length||1;
+      return{...s,results,pf:totalPF,pa:totalPA,diff:totalPF-totalPA,avg:(totalPF/gp).toFixed(1),gp,w,d,l,pts:w*3+d};
+    }).sort((a,b)=>b.pts-a.pts||b.pf-a.pf);
+  },[standings,managerResults,finishedMatches,gwMatches,picks,liveData,bootstrap]);
+
+  // Classic standings (total points only, live)
+  const classicStandings=useMemo(()=>{
+    return entries.map(e=>{
+      // Sum finished GW points
+      let total=0;
+      finishedMatches.forEach(m=>{
+        if(m.league_entry_1===e.id) total+=m.league_entry_1_points||0;
+        else if(m.league_entry_2===e.id) total+=m.league_entry_2_points||0;
+      });
+      // Add live current GW points
+      const liveMs=gwMatches.filter(m=>(m.league_entry_1===e.id||m.league_entry_2===e.id)&&m.started&&!m.finished);
+      let liveTotal=0;
+      liveMs.forEach(m=>{
+        const is1=m.league_entry_1===e.id;
+        const myId=is1?m.league_entry_1:m.league_entry_2;
+        const lv=getLive(myId,m.event);
+        liveTotal=lv!==null?lv:(is1?m.league_entry_1_points:m.league_entry_2_points)||0;
+      });
+      // Also add finished current GW if it just finished
+      const finCurMs=gwMatches.filter(m=>(m.league_entry_1===e.id||m.league_entry_2===e.id)&&m.finished);
+      finCurMs.forEach(m=>{
+        // Only add if not already in finishedMatches
+        if(!finishedMatches.includes(m)){
+          if(m.league_entry_1===e.id) total+=m.league_entry_1_points||0;
+          else total+=m.league_entry_2_points||0;
+        }
+      });
+      return{entry:e,total:total+liveTotal};
+    }).sort((a,b)=>b.total-a.total);
+  },[entries,finishedMatches,gwMatches,picks,liveData,bootstrap]);
 
   const records=useMemo(()=>{
     let hi={s:0},lo={s:Infinity},big={m:0},close={m:Infinity};
@@ -297,32 +353,6 @@ function App(){
     return{hi,lo,big,close,mostWins,bestAvg,longestW,longestL};
   },[finishedMatches,enrichedStandings]);
 
-  // Waiver stats
-  const waiverStats=useMemo(()=>{
-    if(!transactions||!transactions.length) return null;
-    // Count successful waivers per manager (entry_id -> count)
-    const counts={};
-    transactions.forEach(tx=>{
-      // Successful waiver: kind='w' and result='a' (accepted)
-      if(tx.kind==='w'&&tx.result==='a'){
-        const eid=tx.entry||tx.league_entry;
-        if(eid) counts[eid]=(counts[eid]||0)+1;
-      }
-    });
-    // Map entry_ids to league_entry ids
-    const mapped={};
-    Object.entries(counts).forEach(([eid,count])=>{
-      // Try matching by entry_id first, then by league_entry id
-      const e=entries.find(en=>en.entry_id===parseInt(eid))||entries.find(en=>en.id===parseInt(eid));
-      if(e&&!isAvg(e)) mapped[e.id]=(mapped[e.id]||0)+count;
-    });
-    if(Object.keys(mapped).length===0) return null;
-    // Find the manager with most successful waivers
-    let topId=null,topCount=0;
-    Object.entries(mapped).forEach(([id,c])=>{if(c>topCount){topCount=c;topId=parseInt(id)}});
-    return{topId,topCount,all:mapped};
-  },[transactions,entries]);
-
   const gwAwards=useMemo(()=>{
     if(!gwIsFinished)return null;
     let best={s:0},closest={m:Infinity},biggest={m:0};
@@ -349,20 +379,23 @@ function App(){
   function getLive(lid,ev){
     const e=mgr(lid);
     if(e&&isAvg(e)){
-      // Calculate live average from all non-average teams in this GW
+      // Find who the Average team is playing against this GW
       const gwMs=allMatches.filter(m=>m.event===ev);
-      const realIds=new Set();
-      gwMs.forEach(m=>{
-        const e1=mgr(m.league_entry_1),e2=mgr(m.league_entry_2);
-        if(e1&&!isAvg(e1))realIds.add(m.league_entry_1);
-        if(e2&&!isAvg(e2))realIds.add(m.league_entry_2);
-      });
+      const avgMatch=gwMs.find(m=>m.league_entry_1===lid||m.league_entry_2===lid);
+      const opponentId=avgMatch?(avgMatch.league_entry_1===lid?avgMatch.league_entry_2:avgMatch.league_entry_1):null;
+      // Sum all teams EXCEPT Average and its opponent
       let sum=0,count=0;
-      realIds.forEach(id=>{
-        const p=picks[id+'-'+ev];
-        if(!p)return;
-        const t=calcTeam(p,liveData,bootstrap);
-        if(t){sum+=t.total;count++}
+      gwMs.forEach(m=>{
+        [m.league_entry_1,m.league_entry_2].forEach(id=>{
+          if(id===lid) return; // skip Average
+          if(id===opponentId) return; // skip opponent
+          const mg2=mgr(id);
+          if(mg2&&isAvg(mg2)) return; // double check
+          const p=picks[id+'-'+ev];
+          if(!p) return;
+          const t=calcTeam(p,liveData,bootstrap);
+          if(t){sum+=t.total;count++}
+        });
       });
       return count>0?Math.round(sum/count):null;
     }
@@ -414,7 +447,7 @@ function App(){
           </span>
         </div>
         <div className="tabs">
-          {[['live','Live GW'],['standings','Standings'],['stats','Stats'],['h2h','H2H Grid']].map(([k,l])=>
+          {[['live','Live GW'],['standings','Standings'],['classic','Classic'],['stats','Stats'],['h2h','H2H Grid']].map(([k,l])=>
             <button key={k} className={'tab '+(tab===k?'on':'off')} onClick={()=>setTab(k)}>{l}</button>
           )}
         </div>
@@ -478,23 +511,42 @@ function App(){
 
         {/* ═══ STANDINGS ═══ */}
         {tab==='standings'&&<div>
+          {gwIsLive&&<div style={{fontSize:10,color:'var(--acc)',marginBottom:8,display:'flex',alignItems:'center',gap:4}}><div className="pulse" style={{width:5,height:5}}/> Includes projected GW{gw} results</div>}
           <div className="tbl-wrap"><table><thead><tr>
             {['#','Team','W','D','L','Pts','PF','PA','±','Avg','Form'].map(h=><th key={h} style={{textAlign:h==='Team'?'left':'center'}}>{h}</th>)}
           </tr></thead><tbody>
             {enrichedStandings.map((s,i)=>{
-              const e=mgr(s.league_entry),av=e&&isAvg(e),pts=s.matches_won*3+s.matches_drawn,form=(s.results||[]).slice(-5);
+              const e=mgr(s.league_entry),av=e&&isAvg(e),form=(s.results||[]).slice(-5);
               return<tr key={s.league_entry} style={{background:i===0?'rgba(0,255,135,.03)':'transparent'}}>
                 <td style={{textAlign:'center',fontWeight:800,color:i===0?'var(--acc)':i>=entries.length-1?'var(--red)':'var(--t2)'}}>{i+1}</td>
                 <td style={{fontWeight:700,fontSize:11,whiteSpace:'nowrap'}} className={av?'avg-team':''}>{displayName(e)}</td>
-                <td style={{textAlign:'center',color:'var(--acc)',fontWeight:600}}>{s.matches_won}</td>
-                <td style={{textAlign:'center',color:'var(--t2)'}}>{s.matches_drawn}</td>
-                <td style={{textAlign:'center',color:'var(--red)'}}>{s.matches_lost}</td>
-                <td style={{textAlign:'center',fontWeight:900,fontSize:14}}>{pts}</td>
+                <td style={{textAlign:'center',color:'var(--acc)',fontWeight:600}}>{s.w}</td>
+                <td style={{textAlign:'center',color:'var(--t2)'}}>{s.d}</td>
+                <td style={{textAlign:'center',color:'var(--red)'}}>{s.l}</td>
+                <td style={{textAlign:'center',fontWeight:900,fontSize:14}}>{s.pts}</td>
                 <td style={{textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{s.pf}</td>
                 <td style={{textAlign:'center',fontVariantNumeric:'tabular-nums',color:'var(--t2)'}}>{s.pa}</td>
                 <td style={{textAlign:'center',fontWeight:700,color:s.diff>0?'var(--acc)':s.diff<0?'var(--red)':'var(--t2)'}}>{s.diff>0?'+':''}{s.diff}</td>
                 <td style={{textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{s.avg}</td>
                 <td style={{textAlign:'center'}}><div className="form-dots">{form.map((r,j)=><div key={j} className="fdot" style={{background:r==='W'?'var(--acc)':r==='L'?'var(--red)':'#6b7280'}}/>)}</div></td>
+              </tr>;
+            })}
+          </tbody></table></div>
+        </div>}
+
+        {/* ═══ CLASSIC ═══ */}
+        {tab==='classic'&&<div>
+          <div className="section">📋 Classic Standings</div>
+          {gwIsLive&&<div style={{fontSize:10,color:'var(--acc)',marginBottom:8,display:'flex',alignItems:'center',gap:4}}><div className="pulse" style={{width:5,height:5}}/> Includes live GW{gw} points</div>}
+          <div className="tbl-wrap"><table><thead><tr>
+            {['#','Team','Total Pts'].map(h=><th key={h} style={{textAlign:h==='Team'?'left':'center'}}>{h}</th>)}
+          </tr></thead><tbody>
+            {classicStandings.map((cs,i)=>{
+              const av=isAvg(cs.entry);
+              return<tr key={cs.entry.id} style={{background:i===0?'rgba(0,255,135,.03)':'transparent'}}>
+                <td style={{textAlign:'center',fontWeight:800,color:i===0?'var(--acc)':i>=classicStandings.length-1?'var(--red)':'var(--t2)'}}>{i+1}</td>
+                <td style={{fontWeight:700,fontSize:12,whiteSpace:'nowrap'}} className={av?'avg-team':''}>{displayName(cs.entry)}</td>
+                <td style={{textAlign:'center',fontWeight:900,fontSize:16,fontVariantNumeric:'tabular-nums'}}>{cs.total}</td>
               </tr>;
             })}
           </tbody></table></div>
@@ -522,9 +574,6 @@ function App(){
               <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🔥</div><div className="stat-label">Longest Win Streak</div><div className="stat-val" style={{color:'var(--acc)'}}>{records.longestW.l} {records.longestW.l===1?'win':'wins'}</div><div className="stat-sub">{displayName(mgr(records.longestW.id))}</div></div>
               <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🥶</div><div className="stat-label">Longest Loss Streak</div><div className="stat-val" style={{color:'var(--red)'}}>{records.longestL.l} {records.longestL.l===1?'loss':'losses'}</div><div className="stat-sub">{displayName(mgr(records.longestL.id))}</div></div>
             </div>
-            {waiverStats&&<div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
-              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🔄</div><div className="stat-label">Most Waivers</div><div className="stat-val" style={{color:'var(--cyan)'}}>{waiverStats.topCount}</div><div className="stat-sub">{displayName(mgr(waiverStats.topId))}</div></div>
-            </div>}
           </>}
         </div>}
 
