@@ -101,11 +101,11 @@ const POS_C = {GKP:'#fbbf24',DEF:'#04f5ff',MID:'#a78bfa',FWD:'#ff4757'};
 
 // ═══ MULTI-PROXY API ════════════════════════════════════════
 const PROXIES = [
+  u=>'https://fplproxy.hfj4rnnt7g.workers.dev/'+u,
   u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
   u=>'https://api.codetabs.com/v1/proxy/?quest='+encodeURIComponent(u),
   u=>'https://proxy.cors.sh/'+u,
   u=>'https://thingproxy.freeboard.io/fetch/'+u,
-  u=>'https://corsproxy.io/?'+encodeURIComponent(u),
   u=>u
 ];
 let px = null;
