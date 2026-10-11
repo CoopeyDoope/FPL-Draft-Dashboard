@@ -2,102 +2,319 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#16021c">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>FPL Draft H2H — The Charles Rice Invitational</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
 <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
 <style>
+/* ═══ TOKENS ═══════════════════════════════════════════════════
+   Plum = FPL heritage base. Colour always means something:
+   green won/winning · pink lost/losing · cyan live · gold leader. */
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0b0f19;--s1:#121829;--s2:#1a2138;--s3:#222b45;--acc:#00ff87;--cyan:#04f5ff;--red:#ff4757;--amber:#fbbf24;--text:#e8ecf4;--t2:#6e7d9a;--t3:#3d4a66}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+:root{
+  --night:#16021c;
+  --plum:#25072e;
+  --plum-2:#33103f;
+  --line:rgba(232,214,255,.09);
+  --line-2:rgba(232,214,255,.17);
+  --chalk:#f8f4fc;
+  --lilac:#bcaacf;
+  --mute:#9a87ae;
+  --faint:#6f5c84;
+  --win:#00ff87;
+  --loss:#ff4d8a;
+  --level:#b3a7c6;
+  --live:#04f5ff;
+  --gold:#ffcf5c;
+  --wood:#c99a66;
+  --grass-a:#1f8049;
+  --grass-b:#1b7342;
+  --ink:#1b0522;
+  --font:'Archivo',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --gut:16px;
+}
+html{background:var(--night);color-scheme:dark;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{position:relative;min-height:100vh;font-family:var(--font);font-size:14px;line-height:1.4;color:var(--chalk);background:var(--night);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden}
+body::before{content:"";position:absolute;left:0;right:0;top:0;height:560px;pointer-events:none;background:radial-gradient(110% 100% at 50% 0%,rgba(146,38,168,.34) 0%,rgba(146,38,168,.12) 40%,rgba(146,38,168,0) 74%)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--live);outline-offset:2px;border-radius:10px}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-button{font-family:inherit;cursor:pointer;border:none;outline:none;-webkit-tap-highlight-color:transparent}
-.app{min-height:100vh;max-width:600px;margin:0 auto}
-.hdr{padding:14px 16px 0;border-bottom:1px solid var(--s2)}
-.hdr-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
-.logo{font-size:18px;font-weight:900;letter-spacing:-.3px}
-.league-sub{color:var(--t2);font-size:11px;margin-top:2px}
-.h2h-pill{font-size:10px;color:var(--bg);background:var(--acc);padding:2px 8px;border-radius:12px;font-weight:800;margin-left:6px;vertical-align:middle}
-.refresh-btn{background:var(--s1);border:1px solid var(--s2);color:var(--t2);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px}
-.refresh-btn:active{background:var(--s2)}
-.refresh-btn.spinning svg{animation:spin .6s linear}
-.gw-row{display:flex;align-items:center;gap:5px;margin:10px 0;flex-wrap:wrap}
-.gw-chip{min-width:28px;height:26px;border-radius:6px;font-weight:700;font-size:11px;transition:all .12s;display:flex;align-items:center;justify-content:center}
-.gw-chip.on{background:var(--acc);color:var(--bg)}.gw-chip.off{background:var(--s1);color:var(--t2)}
-.gw-label{color:var(--t2);font-size:11px;font-weight:600;margin-left:4px;display:flex;align-items:center;gap:5px}
-.gw-badge{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.gw-badge.live{background:rgba(0,255,135,.15);color:var(--acc)}.gw-badge.final{background:rgba(110,125,154,.15);color:var(--t2)}
-.tabs{display:flex;gap:3px;padding-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.tab{padding:7px 13px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.8px;border-radius:7px;white-space:nowrap;transition:all .12s}
-.tab.on{background:var(--acc);color:var(--bg)}.tab.off{background:transparent;color:var(--t2)}
-.cnt{padding:14px 16px 80px;animation:fadeUp .25s ease}
-.card{background:var(--s1);border-radius:12px;border:1px solid var(--s2);overflow:hidden}
-.match{padding:14px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
-.match:active{background:var(--s2)}
-.match-teams{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.match-side{flex:1;text-align:center}
-.match-name{font-size:11px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.match-pts{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
-.match-vs{color:var(--t3);font-size:12px;font-weight:700;padding:0 6px}
-.bar-track{display:flex;height:3px;border-radius:2px;background:var(--s3);gap:2px;overflow:hidden}
-.bar-fill{height:100%;transition:width .4s ease}
-.live-dot{display:flex;align-items:center;gap:4px;position:absolute;top:10px;right:12px}
-.pulse{width:6px;height:6px;border-radius:50%;background:var(--acc);animation:pulse 1.4s infinite}
-.live-txt{font-size:9px;color:var(--acc);font-weight:700;text-transform:uppercase;letter-spacing:.8px}
-.expand{background:var(--s2);padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--s3)}
-.exp-title{font-size:10px;font-weight:700;color:var(--acc);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
-.pl-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(34,43,69,.5);font-size:11px}
-.pl-left{display:flex;align-items:center;gap:5px;min-width:0}
-.pos-tag{font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;min-width:26px;text-align:center;flex-shrink:0}
-.pl-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pl-pts{font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0;margin-left:4px}
-.sub-in{background:rgba(0,255,135,.08);border-radius:4px;padding:0 3px}
-.sub-out{opacity:.35;text-decoration:line-through}
-.sub-arrow{font-size:8px;margin-left:2px}
-.avg-team{font-style:italic;opacity:.5}
-.awards{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
-.award{background:var(--s1);border-radius:10px;padding:12px 14px;border:1px solid var(--s2);display:flex;align-items:center;gap:10px}
-.award-icon{font-size:22px;flex-shrink:0}
-.award-label{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
-.award-val{font-size:14px;font-weight:800}
-.stat-card{background:var(--s1);border-radius:10px;padding:14px;border:1px solid var(--s2)}
-.stat-icon{font-size:22px;margin-bottom:3px}
-.stat-label{color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:2px}
-.stat-val{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
-.stat-sub{color:var(--t2);font-size:11px;margin-top:2px}
-.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;font-size:11px}
-th{padding:7px 5px;color:var(--t2);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--s2);white-space:nowrap}
-td{padding:8px 5px;border-bottom:1px solid var(--s2)}
-.form-dots{display:flex;gap:3px;justify-content:center}
-.fdot{width:7px;height:7px;border-radius:50%}
-.bench-row{background:var(--s1);border-radius:8px;padding:9px 12px;border:1px solid var(--s2);display:flex;justify-content:space-between;align-items:center;font-size:12px}
-.h2h-cell{padding:5px;text-align:center;font-size:10px;white-space:nowrap}
-.section{font-size:14px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.load-btn{background:var(--s2);color:var(--acc);border:1px solid var(--s3);border-radius:8px;padding:10px 18px;font-weight:700;font-size:13px;width:100%;margin-top:8px}
-.load-btn:active{background:var(--s3)}
-.spinner{width:32px;height:32px;border:3px solid var(--s2);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
-.center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:12px}
-.err-box{background:var(--s1);border:1px solid var(--red);border-radius:12px;padding:20px;text-align:center;margin:20px 16px}
-.retry{background:var(--acc);color:var(--bg);border-radius:8px;padding:10px 24px;font-weight:700;font-size:14px;margin-top:10px}
-.footer{text-align:center;padding:20px 16px;color:var(--t3);font-size:10px;position:fixed;bottom:0;left:0;right:0;background:linear-gradient(transparent,var(--bg) 40%);pointer-events:none}
-.tap-hint{text-align:center;font-size:9px;color:var(--t3);margin-top:6px}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(4,245,255,.6)}80%,100%{box-shadow:0 0 0 7px rgba(4,245,255,0)}}
+@keyframes unfold{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes drawln{0%{stroke-dashoffset:100}50%{stroke-dashoffset:0}100%{stroke-dashoffset:-100}}
+
+.app{position:relative;max-width:560px;margin:0 auto;padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+.content{animation:fade .18s ease-out;transition:opacity .25s}
+.app.refreshing .content{opacity:.55}
+
+/* ═══ MASTHEAD ═══ */
+.mast{padding:calc(10px + env(safe-area-inset-top)) var(--gut) 4px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;height:44px;margin-bottom:12px}
+.wordmark{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;font-stretch:87.5%;letter-spacing:.01em}
+.wordmark em{font-style:normal;font-size:10.5px;font-weight:800;color:var(--lilac);padding:2px 6px;border-radius:5px;box-shadow:inset 0 0 0 1px var(--line-2)}
+.refresh{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px 0 12px;border-radius:999px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px var(--line-2);color:var(--lilac);font-size:12.5px;font-weight:650;font-variant-numeric:tabular-nums}
+.refresh:active{background:rgba(255,255,255,.12)}
+.refresh svg{width:15px;height:15px}
+.refresh.busy svg{animation:spin .9s linear infinite}
+.mast h1{font-size:clamp(31px,9.4vw,44px);font-weight:820;font-stretch:125%;line-height:.95;letter-spacing:-.03em;text-wrap:balance;overflow-wrap:break-word}
+.mast .sub{margin-top:12px;font-size:14px;color:var(--lilac)}
+
+/* ═══ SHARED ═══ */
+.sec{padding:0 var(--gut);margin-top:24px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;min-height:28px}
+.sec-h h2{font-size:21px;font-weight:760;letter-spacing:-.015em;line-height:1.15}
+.sub-h{font-size:15px;font-weight:700;margin:26px 0 4px}
+.note{margin-top:12px;font-size:12.5px;line-height:1.5;color:var(--mute)}
+.empty{padding:40px 12px;text-align:center;color:var(--lilac);font-size:14px;line-height:1.5}
+.chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 11px;border-radius:999px;font-size:12.5px;font-weight:650;white-space:nowrap;flex:0 0 auto}
+.chip.live{color:var(--live);background:rgba(4,245,255,.09);box-shadow:inset 0 0 0 1px rgba(4,245,255,.3)}
+.chip.final{color:var(--lilac);background:rgba(255,255,255,.06)}
+.chip.soon{color:var(--lilac);box-shadow:inset 0 0 0 1px var(--line-2)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--live);animation:ping 1.8s ease-out infinite}
+.crest{display:block;flex:0 0 auto;overflow:visible}
+.crest-t{font-family:var(--font);font-size:13px;font-weight:800;font-stretch:75%;fill:#fff;paint-order:stroke;stroke:#24092f;stroke-width:3px;stroke-linejoin:round;letter-spacing:.02em}
+.crest-t.avg{fill:var(--lilac);stroke:none}
+.ico{display:inline-flex;flex:0 0 auto;width:15px;height:15px}
+.ico svg{width:100%;height:100%}
+.ico.crown{color:var(--gold)}
+.ico.spoon{color:var(--wood)}
+
+/* ═══ GAMEWEEK HEADER + STRIP ═══ */
+.gw-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 var(--gut);margin:22px 0 10px}
+.gw-head h2{font-size:22px;font-weight:760;letter-spacing:-.015em}
+.gw-strip{position:relative;display:flex;gap:6px;overflow-x:auto;padding:2px var(--gut) 4px;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
+.gw-strip::-webkit-scrollbar{display:none}
+.gw{position:relative;flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:17px;font-weight:760;font-stretch:75%;color:var(--lilac);background:rgba(255,255,255,.055);scroll-snap-align:center;font-variant-numeric:tabular-nums}
+.gw:active{background:rgba(255,255,255,.1)}
+.gw[aria-current="true"]{background:var(--chalk);color:var(--night)}
+.gw .now{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--live)}
+
+/* Gameweek in numbers */
+.gwnums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:14px var(--gut) 0;border-radius:16px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px var(--line)}
+.gwnums>div{padding:12px;min-width:0}
+.gwnums>div+div{box-shadow:-1px 0 0 var(--line)}
+.gwnums .k{font-size:12px;color:var(--mute)}
+.gwnums .v{margin-top:3px;font-size:28px;font-weight:850;font-stretch:62.5%;line-height:1.02;white-space:nowrap}
+.gwnums .w{margin-top:4px;font-size:12px;color:var(--lilac);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ═══ FIXTURE SCOREBOARDS ═══ */
+.fixtures{display:flex;flex-direction:column;gap:12px;padding:0 var(--gut);margin-top:14px}
+.fx{border-radius:22px;background:linear-gradient(180deg,#2c0a36 0%,#210628 100%);box-shadow:inset 0 0 0 1px var(--line),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden}
+.fx-btn{display:block;width:100%;padding:18px 12px 0;border-radius:22px}
+.fx-btn:focus-visible{outline-offset:-3px}
+.fx-grid{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}
+.team{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;min-width:0}
+.team .nm{max-width:100%;font-size:13.5px;font-weight:680;font-stretch:87.5%;line-height:1.18;overflow-wrap:break-word;-webkit-hyphens:auto;hyphens:auto;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.team.trail .nm{color:var(--lilac)}
+.team.avg .nm{font-style:italic;color:var(--mute)}
+.team .meta{margin-top:-3px;font-size:11.5px;color:var(--mute);white-space:nowrap}
+.board{display:flex;align-items:stretch;padding:4px;border-radius:15px;background:#10000f;background-image:radial-gradient(rgba(255,255,255,.045) .8px,transparent 1.1px);background-size:4px 4px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),inset 0 14px 26px rgba(0,0,0,.5)}
+.board .sc{min-width:54px;padding:7px 5px 5px;text-align:center;font-size:54px;font-weight:860;font-stretch:62.5%;line-height:1;letter-spacing:-.02em;color:var(--chalk)}
+.board .sc.lead{text-shadow:0 0 24px rgba(255,255,255,.3)}
+.board .sc.trail{color:#806c94}
+.board .sc.wait{color:var(--faint)}
+.board .sep{width:1px;margin:10px 0;background:rgba(255,255,255,.1)}
+.tug{display:flex;gap:2px;height:6px;margin-top:16px}
+.tug i{display:block;height:100%;min-width:6px;border-radius:3px;transition:flex-grow .7s cubic-bezier(.2,.7,.2,1)}
+.tug .w{background:var(--win);box-shadow:0 0 14px rgba(0,255,135,.4)}
+.tug .l{background:var(--loss)}
+.tug .d{background:var(--level)}
+.tug .n{background:rgba(255,255,255,.09)}
+.fx-foot{display:flex;align-items:center;justify-content:center;gap:5px;padding:11px 0 13px;color:var(--mute);font-size:12px;font-weight:600}
+.fx-foot svg{width:14px;height:14px;transition:transform .25s}
+.fx.open .fx-foot svg{transform:rotate(180deg)}
+.lineups{padding:0 10px 14px;animation:unfold .32s cubic-bezier(.2,.7,.2,1)}
+
+/* ═══ PITCH ═══ */
+.pitch{position:relative;width:100%;aspect-ratio:68/105;border-radius:16px;overflow:hidden;isolation:isolate;
+  background:
+    radial-gradient(85% 50% at 50% 50%,rgba(255,255,255,.07),rgba(255,255,255,0) 70%),
+    linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,0) 14%,rgba(0,0,0,0) 86%,rgba(0,0,0,.2)),
+    repeating-linear-gradient(180deg,var(--grass-a) 0 7.142857%,var(--grass-b) 7.142857% 14.285714%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.pitch .lines{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.half-msg{position:absolute;left:10%;right:10%;z-index:2;display:grid;place-items:center;text-align:center;font-size:13px;line-height:1.45;color:rgba(255,255,255,.92)}
+.half-msg.top{top:5%;height:40%}.half-msg.bottom{bottom:5%;height:40%}
+.half-msg>span{padding:12px 16px;border-radius:12px;background:rgba(14,1,20,.55)}
+.half-msg b{font-size:30px;font-weight:850;font-stretch:62.5%;display:block;line-height:1.05}
+/* Player token: points chip + name. Events sit beside the chip so rows never collide.
+   The bottom team is flipped (name above chip) so both halves mirror the halfway line. */
+.tok{position:absolute;z-index:1;display:flex;flex-direction:column;align-items:center;gap:4px;width:68px;margin:-15px 0 0 -34px}
+.tok.flip{flex-direction:column-reverse;margin-top:-36px}
+.tok .ch{position:relative;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#fff;color:var(--ink);font-size:15px;font-weight:850;font-stretch:75%;box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.tok.haul .ch{background:var(--win);box-shadow:0 0 0 3px rgba(0,255,135,.28),0 3px 8px rgba(0,0,0,.35)}
+.tok.neg .ch{background:var(--loss)}
+.tok.dnp .ch{background:#55a075;color:rgba(255,255,255,.9);box-shadow:none}
+.bench .tok.dnp .ch{background:#4a2a57}
+.tok.yet .ch{background:rgba(10,0,14,.28);color:#fff;border:1.5px dashed rgba(255,255,255,.75);box-shadow:none}
+.tok.yet .ch svg{width:14px;height:14px}
+.tok .nm{display:flex;align-items:center;gap:3px;max-width:68px;padding:2px 6px;border-radius:6px;background:rgba(14,1,20,.74);color:#fff;font-size:10.5px;font-weight:600;font-stretch:87.5%;line-height:1.25}
+.tok .nm span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tok.out .nm{color:rgba(255,255,255,.6)}
+.ev-l,.ev-r{position:absolute;z-index:2;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px}
+.ev-l{right:calc(100% - 7px);align-items:flex-end}
+.ev-r{left:calc(100% - 7px);align-items:flex-start}
+.ev{display:inline-flex;align-items:center;gap:1px;height:14px;padding:0 3px;border-radius:7px;background:rgba(14,1,20,.86);color:#fff;font-size:9.5px;font-weight:800;font-stretch:75%;line-height:1;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.ev svg{width:10px;height:10px}
+.ev.g{padding:0 2px}
+.ev.b{color:var(--gold)}
+.ev.og{color:var(--loss)}
+.bdg{width:15px;height:15px;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 2px rgba(14,1,20,.55)}
+.bdg svg{width:9px;height:9px}
+.bdg.in{background:var(--win);color:var(--ink)}
+.bdg.out{background:var(--loss);color:var(--ink)}
+.bk{flex:0 0 auto;width:6px;height:9px;border-radius:1.5px}
+.bk.y{background:#ffd23f}.bk.r{background:#ff3b3b}
+.side-h{display:flex;align-items:center;gap:8px;min-width:0;padding:12px 2px 0;font-size:13px;font-weight:650}
+.side-h.bottom{padding:0 2px 12px}
+.side-h .n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-h b{font-size:17px;font-weight:850;font-stretch:62.5%;font-variant-numeric:tabular-nums}
+.side-h b small{font-size:11.5px;font-weight:600;font-stretch:87.5%;color:var(--mute);margin-left:3px}
+.bench{display:grid;grid-template-columns:40px repeat(4,minmax(0,1fr));align-items:start;padding:10px 0}
+.bench .lbl{padding-top:7px;font-size:11px;font-weight:600;color:var(--mute)}
+.bench .tok{position:relative;margin:0 auto;width:auto;max-width:100%}
+.bench .tok .ch{width:27px;height:27px;font-size:13.5px}
+.bench .tok .nm{max-width:100%;background:rgba(255,255,255,.07)}
+.legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin-top:4px;font-size:11.5px;color:var(--mute)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{width:14px;height:14px;border-radius:50%;display:grid;place-items:center}
+.lg svg{width:8px;height:8px}
+.lg.in{background:var(--win);color:var(--ink)}.lg.out{background:var(--loss);color:var(--ink)}
+.lg.yet{border:1.5px dashed rgba(255,255,255,.75)}
+
+/* ═══ TABLE ═══ */
+.tbl{--cols:30px minmax(0,1fr) 42px 42px 34px}
+.thead{display:grid;grid-template-columns:var(--cols);gap:8px;padding:0 2px 8px;font-size:11.5px;color:var(--mute);border-bottom:1px solid var(--line)}
+.thead span:nth-child(n+3){text-align:right}
+.thead span:first-child{text-align:center}
+.tr{border-bottom:1px solid var(--line)}
+.trow{display:grid;grid-template-columns:var(--cols);gap:8px;align-items:center;width:100%;padding:12px 2px;border-radius:12px}
+.trow:active{background:rgba(255,255,255,.04)}
+.tr.avg .trow{opacity:.62}
+.rk{display:flex;flex-direction:column;align-items:center;font-size:21px;font-weight:850;font-stretch:62.5%;line-height:1;color:var(--lilac);font-variant-numeric:tabular-nums}
+.rk.top{color:var(--gold)}
+.mv{margin-top:3px;font-size:10px;font-weight:750;font-stretch:87.5%;line-height:1}
+.mv.up{color:var(--win)}.mv.down{color:var(--loss)}
+.tm{min-width:0}
+.tm .l1{display:flex;align-items:center;gap:8px;min-width:0}
+.tm .n{min-width:0;font-size:14.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr.avg .tm .n{font-style:italic;font-weight:500}
+.tm .l2{display:flex;align-items:center;gap:8px;margin-top:6px}
+.form{display:flex;gap:3px}
+.pill{width:16px;height:16px;border-radius:4px;display:grid;place-items:center;font-style:normal;font-size:9.5px;font-weight:850;font-stretch:75%;color:var(--ink);line-height:1}
+.pill.W{background:var(--win)}.pill.L{background:var(--loss)}.pill.D{background:var(--level)}
+.pill.lv{background:transparent;color:var(--live);box-shadow:inset 0 0 0 1.5px var(--live)}
+.wdl{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cn{text-align:right;font-size:14px;color:var(--lilac);font-variant-numeric:tabular-nums}
+.cn.pos{color:var(--win)}.cn.neg{color:var(--loss)}
+.cp{text-align:right;font-size:21px;font-weight:850;font-stretch:62.5%;line-height:1;font-variant-numeric:tabular-nums}
+.tdet{padding:2px 2px 18px 38px;animation:unfold .26s cubic-bezier(.2,.7,.2,1)}
+.stats4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 8px}
+.stats4 .k{display:block;font-size:11.5px;color:var(--mute)}
+.stats4 .v{display:block;margin-top:1px;font-size:18px;font-weight:800;font-stretch:75%;font-variant-numeric:tabular-nums}
+.season{display:flex;flex-wrap:wrap;gap:5px;margin-top:16px}
+.season .g{display:flex;flex-direction:column;align-items:center;gap:3px}
+.season .pill{width:26px;height:24px;border-radius:6px;font-size:11.5px}
+.season small{font-size:10px;color:var(--mute);font-variant-numeric:tabular-nums}
+
+/* ═══ CLASSIC ═══ */
+.crow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:start;padding:14px 2px;border-bottom:1px solid var(--line)}
+.crow .rk{padding-top:1px}
+.crow .tm .n{font-size:14.5px}
+.track{height:8px;margin-top:10px;border-radius:0 4px 4px 0;background:rgba(255,255,255,.05)}
+.fill{height:100%;border-radius:0 4px 4px 0;background:#9d86c4}
+.crow.lead .fill{background:var(--gold)}
+.crow .meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:12px;color:var(--mute)}
+.luck.good{color:var(--win)}.luck.bad{color:var(--loss)}
+.tot{text-align:right;font-size:26px;font-weight:850;font-stretch:62.5%;line-height:1;font-variant-numeric:tabular-nums}
+.tot small{display:block;margin-top:5px;font-size:12px;font-weight:600;font-stretch:100%;color:var(--mute)}
+
+/* ═══ RECORDS ═══ */
+.rec{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 14px;padding:13px 2px;border-bottom:1px solid var(--line)}
+.rec .k{font-size:14.5px;font-weight:650}
+.rec .who{grid-column:1;font-size:12.5px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec .v{grid-column:2;grid-row:1/3;text-align:right;font-size:36px;font-weight:850;font-stretch:62.5%;line-height:.9;white-space:nowrap}
+.rec .v small{margin-left:4px;font-size:13px;font-weight:600;font-stretch:87.5%;color:var(--mute)}
+.readout{min-height:40px;margin:6px 0 10px;font-size:13px;line-height:1.45;color:var(--lilac)}
+.readout b{color:var(--chalk);font-weight:700}
+/* Edge-to-edge horizontal scrollers; the first column sticks and covers what scrolls under it */
+.scroll-x{overflow-x:auto;margin:0 calc(-1*var(--gut));padding:0 var(--gut) 4px 0;scrollbar-width:none}
+.scroll-x::-webkit-scrollbar{display:none}
+.heat{border-collapse:separate;border-spacing:3px}
+.heat th{font-size:11px;font-weight:650;font-stretch:87.5%;color:var(--mute);text-align:center;font-variant-numeric:tabular-nums}
+.heat thead th{padding-bottom:2px}
+.heat thead th:first-child,.heat tbody th{position:sticky;left:0;z-index:1;padding:0 6px 0 calc(var(--gut) - 3px);text-align:left;background:var(--night);box-shadow:3px 0 0 var(--night)}
+.heat tbody th{color:var(--lilac)}
+.heat td{padding:0}
+.heat button{display:grid;place-items:center;width:34px;height:30px;border-radius:6px;font-size:13px;font-weight:750;font-stretch:75%;font-variant-numeric:tabular-nums}
+.heat button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--night),0 0 0 4px var(--chalk)}
+.scale{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.scale .sw{display:flex;gap:2px}
+.scale .sw i{width:16px;height:10px;border-radius:2px}
+
+/* ═══ H2H MATRIX ═══ */
+.mx{border-collapse:separate;border-spacing:2px}
+.mx th{font-size:10.5px;font-weight:750;font-stretch:75%;color:var(--lilac);letter-spacing:.02em}
+.mx thead th{height:26px;vertical-align:bottom;padding-bottom:3px;text-align:center}
+.mx thead th:first-child,.mx tbody th{position:sticky;left:0;z-index:1;padding:0 4px 0 calc(var(--gut) - 2px);text-align:left;background:var(--night);box-shadow:2px 0 0 var(--night)}
+.mx th.avg{font-style:italic;color:var(--mute)}
+.mx td{width:31px;min-width:31px;height:31px;border-radius:6px;text-align:center;font-size:10.5px;font-weight:750;font-stretch:75%;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mx td.self{background:rgba(255,255,255,.025)}
+.mx td.none{color:var(--faint);box-shadow:inset 0 0 0 1px var(--line)}
+
+/* ═══ LOADING / ERROR ═══ */
+.boot{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center}
+.boot-art{width:120px;height:120px}
+.boot-art .ln{fill:none;stroke:var(--lilac);stroke-width:1.6;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;animation:drawln 2s cubic-bezier(.6,.1,.3,1) infinite}
+.boot-art .ln.l2{animation-delay:.25s;stroke:var(--mute)}
+.boot-art .spot{fill:var(--chalk)}
+.boot p{font-size:14px;color:var(--lilac)}
+.fail{max-width:340px;padding:24px 22px;border-radius:20px;background:var(--plum);box-shadow:inset 0 0 0 1px var(--line-2)}
+.fail h2{font-size:19px;font-weight:760;margin-bottom:8px}
+.fail p{font-size:14px;line-height:1.5;color:var(--lilac)}
+.retry{margin-top:18px;height:44px;padding:0 22px;border-radius:999px;background:var(--chalk);color:var(--night);font-size:14.5px;font-weight:750}
+
+/* ═══ DOCK ═══ */
+.dock{position:fixed;z-index:30;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(540px,calc(100% - 20px));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:6px;border-radius:24px;background:rgba(33,6,41,.86);-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);box-shadow:inset 0 0 0 1px var(--line-2),0 18px 40px -10px rgba(0,0,0,.7)}
+.dock button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 7px;border-radius:18px;color:var(--mute);font-size:11px;font-weight:650;white-space:nowrap;transition:background .2s,color .2s}
+.dock button svg{width:22px;height:22px}
+.dock button[aria-selected="true"]{background:var(--chalk);color:var(--night)}
+.foot{margin-top:32px;text-align:center;font-size:11px;color:var(--faint)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useMemo,useCallback} = React;
+const {useState,useEffect,useMemo,useCallback,useRef,useLayoutEffect} = React;
 
 // ═══ CONFIG ══════════════════════════════════════════════════
 const LEAGUE_ID = 15656;
 const API_BASE = 'https://draft.premierleague.com/api';
+const VERSION = '3.0';
 const POS = {1:'GKP',2:'DEF',3:'MID',4:'FWD'};
-const POS_C = {GKP:'#fbbf24',DEF:'#04f5ff',MID:'#a78bfa',FWD:'#ff4757'};
+
+// Colour ramps for the dark surface, validated for monotone lightness.
+// HEAT: one-hue sequential (gameweek scores). WIN/LOSS arms + neutral
+// midpoint: diverging scale (head-to-head records).
+const HEAT = ['#2c113a','#401c53','#54286c','#6c3989','#8851a7','#a97ac6','#d5b7e8'];
+const DIV_WIN = ['#125b3a','#0e8050','#00aa69'];
+const DIV_LOSS = ['#822547','#b33664','#ea4b86'];
+const DIV_MID = '#39373d';
+const INK = '#1b0522';
 
 // ═══ MULTI-PROXY API ════════════════════════════════════════
 const PROXIES = [
@@ -123,15 +340,36 @@ async function api(ep){
 }
 
 // ═══ AUTO-SUB ENGINE ════════════════════════════════════════
+// Same rules as v2. Lookups are cached per bootstrap / live payload so the
+// engine can run for every manager on every render cheaply.
+const elementIndex=new WeakMap();
+function elementsById(bs){
+  let m=elementIndex.get(bs);
+  if(!m){m=new Map();(bs.elements||[]).forEach(el=>m.set(el.id,el));elementIndex.set(bs,m)}
+  return m;
+}
+const kickoffIndex=new WeakMap();
+function clubsKickedOff(live,bs){
+  let byBs=kickoffIndex.get(live);
+  if(!byBs){byBs=new WeakMap();kickoffIndex.set(live,byBs)}
+  let s=byBs.get(bs);
+  if(!s){
+    // A club has kicked off once any of its players has minutes > 0
+    s=new Set();
+    if(bs.elements){bs.elements.forEach(el=>{const lv=live[el.id];if(lv&&(lv.minutes>0))s.add(el.team)})}
+    byBs.set(bs,s);
+  }
+  return s;
+}
 function calcTeam(picks, live, bs){
   if(!picks||!live||!bs) return null;
-  // Figure out which teams have kicked off (any player from that team has minutes > 0)
-  const teamsPlayed=new Set();
-  if(bs.elements){bs.elements.forEach(el=>{const lv=live[el.id];if(lv&&(lv.minutes>0))teamsPlayed.add(el.team)})}
+  const teamsPlayed=clubsKickedOff(live,bs);
+  const els=elementsById(bs);
   const info = p=>{
-    const el=bs.elements?.find(e=>e.id===p.element);
+    const el=els.get(p.element);
     const lv=live[p.element];
-    return{...p,type:el?.element_type||0,team:el?.team||0,mins:lv?.minutes||0,pts:lv?.total_points||0,name:el?.web_name||'?',subIn:false,subOut:false};
+    return{...p,type:el?.element_type||0,team:el?.team||0,mins:lv?.minutes||0,pts:lv?.total_points||0,name:el?.web_name||'?',subIn:false,subOut:false,
+      stats:lv||null,kicked:teamsPlayed.has(el?.team||0)};
   };
   const st=picks.filter(p=>p.position<=11).map(info);
   const bn=picks.filter(p=>p.position>11).sort((a,b)=>a.position-b.position).map(info);
@@ -149,12 +387,13 @@ function calcTeam(picks, live, bs){
       const c={1:0,2:0,3:0,4:0};
       team.forEach(p=>{c[p.type]=(c[p.type]||0)+1});
       if(c[1]>=1&&c[2]>=3&&c[3]>=2&&c[4]>=1){
-        st[si].subOut=true;bn[bi].subIn=true;outS.add(si);usedB.add(bi);break;
+        st[si].subOut=true;bn[bi].subIn=true;st[si].subBy=bi;bn[bi].subFor=si;outS.add(si);usedB.add(bi);break;
       }
     }
   }
   let total=0;st.forEach((s,i)=>{if(!outS.has(i))total+=s.pts});usedB.forEach(i=>{total+=bn[i].pts});
-  return{starters:st,bench:bn,total};
+  const xi=[];st.forEach((s,i)=>{if(!outS.has(i))xi.push(s)});usedB.forEach(i=>xi.push(bn[i]));
+  return{starters:st,bench:bn,total,xi,toPlay:xi.filter(p=>!p.kicked).length};
 }
 
 // ═══ HELPERS ════════════════════════════════════════════════
@@ -176,8 +415,323 @@ function getName(e){
 }
 function getShort(e){return isAvg(e)?'AVG':e?.short_name||getName(e).substring(0,3).toUpperCase()}
 function displayName(e){return isAvg(e)?'Average':getName(e)}
+function liveMapFrom(lv){
+  const map={};
+  if(lv&&lv.elements){if(Array.isArray(lv.elements))lv.elements.forEach(el=>{map[el.id]=el.stats});else Object.entries(lv.elements).forEach(([id,el])=>{map[parseInt(id)]=el.stats||el})}
+  return map;
+}
+function resultOf(a,b){return a>b?'W':a<b?'L':'D'}
+function ordinal(n){const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
+function lum(h){const c=[1,3,5].map(i=>{const v=parseInt(h.slice(i,i+2),16)/255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*c[0]+.7152*c[1]+.0722*c[2]}
+const INK_L=lum(INK);
+function inkOn(h){const L=lum(h);return 1.05/(L+.05)>=(L+.05)/(INK_L+.05)?'#ffffff':INK}
+const REDUCED=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ═══ ICONS ══════════════════════════════════════════════════
+const sv=extra=>({viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,...extra});
+const I={
+  refresh:<svg {...sv({strokeWidth:2.2})}><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>,
+  live:<svg {...sv()}><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/><path d="M8.2 8.2a5.4 5.4 0 000 7.6M15.8 8.2a5.4 5.4 0 010 7.6M5.3 5.3a9.5 9.5 0 000 13.4M18.7 5.3a9.5 9.5 0 010 13.4"/></svg>,
+  table:<svg {...sv()}><path d="M9.5 6.5H20M9.5 12H20M9.5 17.5H20"/><circle cx="5" cy="6.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="5" cy="17.5" r="1.4" fill="currentColor" stroke="none"/></svg>,
+  classic:<svg {...sv({strokeWidth:2.6})}><path d="M4.5 6.5h15M4.5 12h10.5M4.5 17.5h6.5"/></svg>,
+  trophy:<svg {...sv()}><path d="M8 4.5h8v4.8a4 4 0 01-8 0z"/><path d="M8 6.5H5.2a2.8 2.8 0 003.2 3.6M16 6.5h2.8a2.8 2.8 0 01-3.2 3.6M12 13.3v3.4M8.5 19.5h7"/></svg>,
+  grid:<svg {...sv()}><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>,
+  chev:<svg {...sv({strokeWidth:2.2})}><path d="M6 9l6 6 6-6"/></svg>,
+  clock:<svg {...sv({strokeWidth:2.4})}><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>,
+  up:<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1.6l3.4 5H1.6z" fill="currentColor"/></svg>,
+  down:<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 8.4l-3.4-5h6.8z" fill="currentColor"/></svg>,
+  crown:<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5l4.6 3.8L12 5.5l3.9 6.8 4.6-3.8-1.8 9.5H5.3z" fill="currentColor"/></svg>,
+  spoon:<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="7.6" cy="7.6" rx="3.9" ry="5.2" transform="rotate(-45 7.6 7.6)" fill="currentColor"/><path d="M10.6 10.6l9.2 9.2" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"/></svg>,
+  ball:<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#fff"/><path d="M10 6.2l3.4 2.5-1.3 4H7.9l-1.3-4z" fill="#1b0522"/><path d="M10 6.2V1.5M13.4 8.7l4.4-1.4M12.1 12.7l2.7 3.8M7.9 12.7l-2.7 3.8M6.6 8.7L2.2 7.3" stroke="#1b0522" strokeWidth="1.3"/></svg>,
+  star:<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.8l2.5 5.3 5.8.7-4.3 4 1.1 5.7L10 14.6l-5.1 2.9 1.1-5.7-4.3-4 5.8-.7z" fill="currentColor"/></svg>,
+};
+
+// ═══ CRESTS ═════════════════════════════════════════════════
+// Every manager gets a shield with their own kit pattern, tone-on-tone so
+// colour stays reserved for results.
+let crestSeq=0;
+const SHIELD='M4 4.5Q20 .5 36 4.5V22C36 32.5 28.8 40 20 44C11.2 40 4 32.5 4 22Z';
+const KITS=['plain','stripes','hoops','halves','sash','quarters','chevron','pins','yoke','bend'];
+function kitShapes(k){
+  switch(k){
+    case 'stripes': return [8,16,24,32].map(x=><rect key={x} x={x-2} y="0" width="4" height="46"/>);
+    case 'hoops': return [9,19,29,39].map(y=><rect key={y} x="0" y={y} width="40" height="5"/>);
+    case 'halves': return <rect x="20" y="0" width="20" height="46"/>;
+    case 'sash': return <path d="M-2 9L9-2 42 31 31 42Z"/>;
+    case 'quarters': return <><rect x="20" y="0" width="20" height="22"/><rect x="0" y="22" width="20" height="24"/></>;
+    case 'chevron': return <path d="M0 8L20 22 40 8V17L20 31 0 17Z"/>;
+    case 'pins': return [6.5,11,15.5,20,24.5,29,33.5].map(x=><rect key={x} x={x-.6} y="0" width="1.2" height="46"/>);
+    case 'yoke': return <rect x="0" y="0" width="40" height="14"/>;
+    case 'bend': return <path d="M0 0H40L0 46Z"/>;
+    default: return null;
+  }
+}
+function Crest({e,idx=0,size=34}){
+  const [uid]=useState(()=>'crest'+(++crestSeq));
+  const h=Math.round(size*46/40);
+  if(!e||isAvg(e)) return (
+    <svg className="crest" width={size} height={h} viewBox="0 0 40 46" aria-hidden="true">
+      <path d={SHIELD} fill="rgba(255,255,255,.03)" stroke="rgba(236,220,255,.45)" strokeWidth="1.5" strokeDasharray="3.2 2.6"/>
+      <text x="20" y="27.5" textAnchor="middle" className="crest-t avg">{e?'AVG':'?'}</text>
+    </svg>
+  );
+  return (
+    <svg className="crest" width={size} height={h} viewBox="0 0 40 46" aria-hidden="true">
+      <defs><clipPath id={uid}><path d={SHIELD}/></clipPath></defs>
+      <path d={SHIELD} fill="#3d1550"/>
+      <g clipPath={'url(#'+uid+')'} fill="rgba(255,255,255,.14)">{kitShapes(KITS[idx%KITS.length])}</g>
+      <path d={SHIELD} fill="none" stroke="rgba(236,220,255,.4)" strokeWidth="1.4"/>
+      <text x="20" y="27.5" textAnchor="middle" className="crest-t">{getShort(e)}</text>
+    </svg>
+  );
+}
+
+// ═══ SCORE TICKER ═══════════════════════════════════════════
+// Scores count up once on first load, then tick from the old value whenever
+// a refresh changes them.
+const shownScores=new Map();
+let introPlayed=false;
+function Ticker({id,value,delay=0}){
+  const initial=shownScores.has(id)?shownScores.get(id):(introPlayed||REDUCED?value:0);
+  const [v,setV]=useState(initial);
+  const cur=useRef(initial);
+  useEffect(()=>{
+    shownScores.set(id,value);
+    const from=cur.current;
+    if(REDUCED||from===value){cur.current=value;setV(value);return}
+    let raf=0,t0=0;
+    const dur=Math.min(950,380+Math.abs(value-from)*7);
+    const step=t=>{
+      if(!t0)t0=t;
+      const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);
+      const n=Math.round(from+(value-from)*e);
+      cur.current=n;setV(n);
+      if(k<1)raf=requestAnimationFrame(step);
+    };
+    const timer=setTimeout(()=>{raf=requestAnimationFrame(step)},delay);
+    return()=>{clearTimeout(timer);cancelAnimationFrame(raf)};
+  },[id,value]);
+  return v;
+}
+
+// ═══ GAMEWEEK STRIP ═════════════════════════════════════════
+function GwStrip({max,gw,cur,curLive,onPick}){
+  const ref=useRef(null);
+  useLayoutEffect(()=>{
+    const c=ref.current;if(!c)return;
+    const b=c.querySelector('[aria-current="true"]');
+    if(b)c.scrollLeft=b.offsetLeft-(c.clientWidth-b.offsetWidth)/2;
+  },[gw,max]);
+  return (
+    <div className="gw-strip" ref={ref} role="group" aria-label="Choose a gameweek">
+      {Array.from({length:max},(_,i)=>{const n=i+1;return(
+        <button key={n} className="gw" aria-current={gw===n?'true':undefined} aria-label={'Gameweek '+n+(n===cur&&curLive?', live':'')} onClick={()=>onPick(n)}>
+          {n}{n===cur&&curLive&&<i className="now"/>}
+        </button>
+      )})}
+    </div>
+  );
+}
+
+// Horizontal scroller that opens at its right-hand end (most recent gameweeks)
+function EndScroller({children}){
+  const ref=useRef(null);
+  useLayoutEffect(()=>{const c=ref.current;if(c)c.scrollLeft=c.scrollWidth},[]);
+  return <div className="scroll-x" ref={ref}>{children}</div>;
+}
+
+// ═══ FIXTURE SCOREBOARD ═════════════════════════════════════
+function Side({e,idx,trail,meta}){
+  const av=e&&isAvg(e);
+  return (
+    <div className={'team'+(trail?' trail':'')+(av?' avg':'')}>
+      <Crest e={e} idx={idx} size={34}/>
+      <span className="nm">{displayName(e)}</span>
+      {meta&&<span className="meta">{meta}</span>}
+    </div>
+  );
+}
+function toPlayText(t){return t?(t.toPlay?t.toPlay+' to play':'All played'):null}
+function Fixture({idx,m,e1,e2,c1,c2,p1,p2,isLive,notStarted,t1,t2,open,onToggle,children}){
+  const lead=notStarted?0:p1>p2?1:p2>p1?2:0;
+  const tot=Math.max(0,p1)+Math.max(0,p2);
+  const seg=side=>notStarted?'n':lead===0?'d':lead===side?'w':'l';
+  const scCls=side=>notStarted?'sc wait':lead===0?'sc':lead===side?'sc lead':'sc trail';
+  const label=notStarted
+    ?`${displayName(e1)} versus ${displayName(e2)}, not started`
+    :`${displayName(e1)} ${p1}, ${displayName(e2)} ${p2}${isLive?', live':''}`;
+  return (
+    <article className={'fx'+(open?' open':'')}>
+      <button className="fx-btn" aria-expanded={open} aria-label={label+'. '+(open?'Hide':'Show')+' lineups'} onClick={onToggle}>
+        <div className="fx-grid">
+          <Side e={e1} idx={c1} trail={lead===2} meta={isLive?toPlayText(t1):null}/>
+          <div className="board">
+            <span className={scCls(1)}>{notStarted?'–':<Ticker id={'s'+m.league_entry_1+'-'+m.event} value={p1} delay={idx*90}/>}</span>
+            <span className="sep"/>
+            <span className={scCls(2)}>{notStarted?'–':<Ticker id={'s'+m.league_entry_2+'-'+m.event} value={p2} delay={idx*90}/>}</span>
+          </div>
+          <Side e={e2} idx={c2} trail={lead===1} meta={isLive?toPlayText(t2):null}/>
+        </div>
+        <div className="tug" aria-hidden="true">
+          <i className={seg(1)} style={{flexGrow:tot?Math.max(0,p1):1}}/>
+          <i className={seg(2)} style={{flexGrow:tot?Math.max(0,p2):1}}/>
+        </div>
+        <div className="fx-foot" aria-hidden="true">{open?'Hide lineups':'Lineups'}{I.chev}</div>
+      </button>
+      {open&&<div className="lineups">{children}</div>}
+    </article>
+  );
+}
+
+// ═══ PITCH (both lineups, facing each other) ════════════════
+const ROW_Y={1:7.0,2:18.6,3:30.2,4:41.8}; // % down the pitch for the top team (bottom team mirrors)
+function PitchLines(){
+  return (
+    <svg className="lines" viewBox="0 0 68 105" aria-hidden="true">
+      <g fill="none" stroke="rgba(255,255,255,.44)" strokeWidth=".32">
+        <rect x="1.5" y="1.5" width="65" height="102"/>
+        <path d="M1.5 52.5H66.5"/>
+        <circle cx="34" cy="52.5" r="9.15"/>
+        <rect x="13.84" y="1.5" width="40.32" height="16.5"/>
+        <rect x="24.84" y="1.5" width="18.32" height="5.5"/>
+        <path d="M26.69 18A9.15 9.15 0 0 0 41.31 18"/>
+        <rect x="13.84" y="87" width="40.32" height="16.5"/>
+        <rect x="24.84" y="98" width="18.32" height="5.5"/>
+        <path d="M26.69 87A9.15 9.15 0 0 1 41.31 87"/>
+        <path d="M2.5 1.5A1 1 0 0 1 1.5 2.5M65.5 1.5A1 1 0 0 0 66.5 2.5M1.5 102.5A1 1 0 0 1 2.5 103.5M66.5 102.5A1 1 0 0 0 65.5 103.5"/>
+      </g>
+      <g fill="rgba(255,255,255,.5)">
+        <circle cx="34" cy="52.5" r=".45"/><circle cx="34" cy="12.5" r=".4"/><circle cx="34" cy="92.5" r=".4"/>
+      </g>
+    </svg>
+  );
+}
+function Token({p,style,flip}){
+  const state=p.mins>0?'played':(p.kicked?'dnp':'yet');
+  const cls=['tok',state];
+  if(state==='played'&&p.pts>=8)cls.push('haul');
+  if(p.pts<0)cls.push('neg');
+  if(p.subIn)cls.push('in');
+  if(p.subOut)cls.push('out');
+  if(flip)cls.push('flip');
+  const s=p.stats||{};
+  const g=s.goals_scored||0,a=s.assists||0,b=s.bonus||0,og=s.own_goals||0,yc=s.yellow_cards||0,rc=s.red_cards||0;
+  const bits=[];
+  if(g)bits.push(g+(g>1?' goals':' goal'));
+  if(a)bits.push(a+(a>1?' assists':' assist'));
+  if(b)bits.push(b+' bonus');
+  if(og)bits.push('own goal');
+  if(rc)bits.push('red card');else if(yc)bits.push('yellow card');
+  if(p.subIn)bits.push('auto-sub on');
+  if(p.subOut)bits.push('auto-sub off');
+  const tip=`${p.name} (${POS[p.type]||'?'}): ${state==='yet'?'yet to play':p.pts+' pts'}${bits.length?', '+bits.join(', '):''}`;
+  return (
+    <div className={cls.join(' ')} style={style} title={tip}>
+      <div className="ch">
+        {state==='yet'?I.clock:p.pts}
+        {(g||og||a)?<span className="ev-l">
+          {g>0&&<span className="ev g">{I.ball}{g>1&&g}</span>}
+          {og>0&&<span className="ev og">OG</span>}
+          {a>0&&<span className="ev">A{a>1&&a}</span>}
+        </span>:null}
+        {(p.subIn||p.subOut||b)?<span className="ev-r">
+          {p.subIn&&<span className="bdg in">{I.up}</span>}
+          {p.subOut&&<span className="bdg out">{I.down}</span>}
+          {b>0&&<span className="ev b">{I.star}{b}</span>}
+        </span>:null}
+      </div>
+      <div className="nm">{rc?<i className="bk r"/>:yc?<i className="bk y"/>:null}<span>{p.name}</span></div>
+    </div>
+  );
+}
+function Half({d,side}){
+  if(d.status!=='ok'){
+    const msg=d.status==='loading'?'Loading lineup…'
+      :d.status==='avg'?<>League average<b>{d.score}</b>pts</>
+      :'Lineup unavailable for this gameweek';
+    return <div className={'half-msg '+side}><span>{msg}</span></div>;
+  }
+  const rows={1:[],2:[],3:[],4:[]};
+  const order=p=>p.subIn&&typeof p.subFor==='number'?d.team.starters[p.subFor].position:p.position;
+  [...d.team.xi].sort((a,b)=>order(a)-order(b)).forEach(p=>{(rows[p.type]||rows[3]).push(p)});
+  return (
+    <>
+      {[1,2,3,4].map(t=>rows[t].map((p,i)=>{
+        const n=rows[t].length;
+        const x=7+(i+.5)*(86/n);
+        const y=side==='top'?ROW_Y[t]:100-ROW_Y[t];
+        return <Token key={p.element} p={p} flip={side==='bottom'} style={{left:x+'%',top:y+'%'}}/>;
+      }))}
+    </>
+  );
+}
+function Bench({d}){
+  if(d.status!=='ok') return null;
+  const t=d.team;
+  // After auto-subs the replaced starter takes the bench spot, as on the FPL site
+  const list=t.bench.map(b=>b.subIn&&typeof b.subFor==='number'?t.starters[b.subFor]:b);
+  return <div className="bench"><span className="lbl">Bench</span>{list.map(p=><Token key={p.element} p={p}/>)}</div>;
+}
+function SideHead({d,pos}){
+  return (
+    <div className={'side-h '+pos}>
+      <Crest e={d.e} idx={d.idx} size={18}/>
+      <span className="n">{d.name}</span>
+      {typeof d.score==='number'&&<b>{d.score}<small>pts</small></b>}
+    </div>
+  );
+}
+function Pitch({top,bottom}){
+  const anySubs=[top,bottom].some(d=>d.status==='ok'&&d.team.bench.some(b=>b.subIn));
+  const anyYet=[top,bottom].some(d=>d.status==='ok'&&d.team.xi.some(p=>!p.kicked));
+  return (
+    <div>
+      <SideHead d={top} pos="top"/>
+      <Bench d={top}/>
+      <div className="pitch">
+        <PitchLines/>
+        <Half d={top} side="top"/>
+        <Half d={bottom} side="bottom"/>
+      </div>
+      <Bench d={bottom}/>
+      <SideHead d={bottom} pos="bottom"/>
+      {(anySubs||anyYet)&&<div className="legend">
+        {anySubs&&<span><i className="lg in">{I.up}</i>Auto-sub on</span>}
+        {anySubs&&<span><i className="lg out">{I.down}</i>Auto-sub off</span>}
+        {anyYet&&<span><i className="lg yet"/>Yet to play</span>}
+      </div>}
+    </div>
+  );
+}
+
+// ═══ LOADING / ERROR ════════════════════════════════════════
+function Boot(){
+  return (
+    <div className="boot" role="status">
+      <svg className="boot-art" viewBox="0 0 120 120" aria-hidden="true">
+        <circle className="ln" cx="60" cy="60" r="32" pathLength="100" transform="rotate(-90 60 60)"/>
+        <path className="ln l2" d="M6 60H114" pathLength="100"/>
+        <circle className="spot" cx="60" cy="60" r="3.4"/>
+      </svg>
+      <p>Loading league</p>
+    </div>
+  );
+}
+function Fail({msg,onRetry}){
+  return (
+    <div className="boot">
+      <div className="fail" role="alert">
+        <h2>Couldn't load the league</h2>
+        <p>{msg}</p>
+        <button className="retry" onClick={onRetry}>Try again</button>
+      </div>
+    </div>
+  );
+}
 
 // ═══ APP ════════════════════════════════════════════════════
+const TABS=[['live','Gameweek',I.live],['table','Table',I.table],['classic','Classic',I.classic],['records','Records',I.trophy],['h2h','H2H',I.grid]];
+
 function App(){
   const [tab,setTab]=useState('live');
   const [gw,setGw]=useState(null);
@@ -190,12 +744,14 @@ function App(){
   const [standings,setStandings]=useState([]);
   const [allMatches,setAllMatches]=useState([]);
   const [bootstrap,setBootstrap]=useState(null);
-  const [liveData,setLiveData]=useState({});
+  const [liveData,setLiveData]=useState({}); // { [gameweek]: { [elementId]: stats } }
   const [picks,setPicks]=useState({});
   const [expanded,setExpanded]=useState(null);
   const [picksLoading,setPicksLoading]=useState({});
   const [lastRefresh,setLastRefresh]=useState(null);
   const [curEvent,setCurEvent]=useState(1);
+  const [openRow,setOpenRow]=useState(null);
+  const [heatSel,setHeatSel]=useState(null);
 
   // ── Load ───────────────────────────────────────────────────
   const loadData = useCallback(async(isRefresh)=>{
@@ -209,175 +765,67 @@ function App(){
       const ms=ld.matches||[];
       const mx=Math.max(cur,...ms.filter(m=>m.started||m.finished).map(m=>m.event),1);
       setMaxGw(mx);setGw(prev=>prev||cur);
-      // Live player data
+      // Live player data, kept per gameweek so browsing old weeks can't overwrite this week
       try{
         const lv=await api('/event/'+cur+'/live');
-        const map={};
-        if(lv.elements){if(Array.isArray(lv.elements))lv.elements.forEach(el=>{map[el.id]=el.stats});else Object.entries(lv.elements).forEach(([id,el])=>{map[parseInt(id)]=el.stats||el})}
-        setLiveData(prev=>({...prev,...map}));
+        const map=liveMapFrom(lv);
+        setLiveData(prev=>({...prev,[cur]:map}));
       }catch(e){}
-      // Picks for current GW
+      // Picks for every manager in the current GW, fetched in parallel (the Average entry has no squad)
       const le=ld.league_entries||[];
-      const curMs=ms.filter(m=>m.event===cur);
-      const pu={};
-      const eids=new Set();
-      curMs.forEach(m=>{
-        const e1=le.find(e=>e.id===m.league_entry_1),e2=le.find(e=>e.id===m.league_entry_2);
-        if(e1)eids.add(JSON.stringify({lid:m.league_entry_1,eid:e1.entry_id}));
-        if(e2)eids.add(JSON.stringify({lid:m.league_entry_2,eid:e2.entry_id}));
+      const seen=new Set(),jobs=[];
+      ms.filter(m=>m.event===cur).forEach(m=>{
+        [m.league_entry_1,m.league_entry_2].forEach(lid=>{
+          if(seen.has(lid))return;seen.add(lid);
+          const e=le.find(x=>x.id===lid);
+          if(!e||isAvg(e)||!e.entry_id)return;
+          jobs.push(api('/entry/'+e.entry_id+'/event/'+cur).then(pd=>[lid,pd.picks||[]]).catch(()=>null));
+        });
       });
-      for(const raw of eids){const{lid,eid}=JSON.parse(raw);try{const pd=await api('/entry/'+eid+'/event/'+cur);pu[lid+'-'+cur]=pd.picks||[]}catch(e){}}
+      const got=await Promise.all(jobs);
+      const pu={};got.forEach(r=>{if(r)pu[r[0]+'-'+cur]=r[1]});
       setPicks(prev=>({...prev,...pu}));
       setLoading(false);setRefreshing(false);setLastRefresh(new Date());
-    }catch(err){console.error(err);setError('Could not load league data. Tap Retry.');setLoading(false);setRefreshing(false)}
+    }catch(err){console.error(err);setError("The FPL servers didn't respond through any of the proxies. Check your connection, then try again.");setLoading(false);setRefreshing(false)}
   },[]);
   useEffect(()=>{loadData(false)},[loadData]);
+  useEffect(()=>{if(!loading){const t=setTimeout(()=>{introPlayed=true},1800);return()=>clearTimeout(t)}},[loading]);
+
+  const entryById=useMemo(()=>{const m=new Map();entries.forEach(e=>m.set(e.id,e));return m},[entries]);
+  function mgr(id){return entryById.get(id)}
+  const crestIdx=useMemo(()=>{const m=new Map();entries.forEach((e,i)=>m.set(e.id,i));return m},[entries]);
+  const ci=id=>crestIdx.get(id)||0;
 
   // ── Load match picks on expand ─────────────────────────────
   async function loadMatchPicks(m){
-    const e1=entries.find(e=>e.id===m.league_entry_1),e2=entries.find(e=>e.id===m.league_entry_2);
-    if(!e1||!e2)return;
-    const k1=m.league_entry_1+'-'+m.event,k2=m.league_entry_2+'-'+m.event;
-    if(picks[k1]&&picks[k2])return;
-    setPicksLoading(p=>({...p,[k1]:true,[k2]:true}));
+    const ev=m.event;
+    const need=[m.league_entry_1,m.league_entry_2].map(lid=>({lid,e:mgr(lid)}))
+      .filter(s=>s.e&&!isAvg(s.e)&&s.e.entry_id&&!picks[s.lid+'-'+ev]);
+    const needLive=!liveData[ev];
+    if(!need.length&&!needLive)return;
+    const keys=need.map(s=>s.lid+'-'+ev);
+    if(needLive)keys.push('live-'+ev);
+    setPicksLoading(p=>{const n={...p};keys.forEach(k=>{n[k]=true});return n});
     try{
-      const[p1,p2]=await Promise.all([api('/entry/'+e1.entry_id+'/event/'+m.event),api('/entry/'+e2.entry_id+'/event/'+m.event)]);
-      try{const lv=await api('/event/'+m.event+'/live');const map={};if(lv.elements){if(Array.isArray(lv.elements))lv.elements.forEach(el=>{map[el.id]=el.stats});else Object.entries(lv.elements).forEach(([id,el])=>{map[parseInt(id)]=el.stats||el})}setLiveData(prev=>({...prev,...map}))}catch(e){}
-      setPicks(prev=>({...prev,[k1]:p1.picks||[],[k2]:p2.picks||[]}));
+      const[pk,lv]=await Promise.all([
+        Promise.all(need.map(s=>api('/entry/'+s.e.entry_id+'/event/'+ev).then(pd=>[s.lid+'-'+ev,pd.picks||[]]).catch(()=>null))),
+        needLive?api('/event/'+ev+'/live').then(liveMapFrom).catch(()=>null):Promise.resolve(null)
+      ]);
+      if(lv)setLiveData(prev=>({...prev,[ev]:lv}));
+      const pu={};pk.forEach(r=>{if(r)pu[r[0]]=r[1]});
+      if(Object.keys(pu).length)setPicks(prev=>({...prev,...pu}));
     }catch(e){console.warn(e)}
-    setPicksLoading(p=>({...p,[k1]:false,[k2]:false}));
+    setPicksLoading(p=>{const n={...p};keys.forEach(k=>{n[k]=false});return n});
   }
 
-  // ── Load all bench data ────────────────────────────────────
-  // ── Derived ────────────────────────────────────────────────
-  const gwMatches=useMemo(()=>allMatches.filter(m=>m.event===gw),[allMatches,gw]);
-  const finishedMatches=useMemo(()=>allMatches.filter(m=>m.finished),[allMatches]);
-  const gwIsLive=useMemo(()=>gw===curEvent&&gwMatches.some(m=>m.started&&!m.finished),[gw,curEvent,gwMatches]);
-  const gwIsFinished=useMemo(()=>gwMatches.length>0&&gwMatches.every(m=>m.finished),[gwMatches]);
-  const gwNotStarted=useMemo(()=>gwMatches.length>0&&gwMatches.every(m=>!m.started),[gwMatches]);
-
-  const managerResults=useMemo(()=>{
-    const res={};entries.forEach(e=>{res[e.id]=[]});
-    [...finishedMatches].sort((a,b)=>a.event-b.event).forEach(m=>{
-      const p1=m.league_entry_1_points,p2=m.league_entry_2_points;
-      if(res[m.league_entry_1])res[m.league_entry_1].push(p1>p2?'W':p1<p2?'L':'D');
-      if(res[m.league_entry_2])res[m.league_entry_2].push(p2>p1?'W':p2<p1?'L':'D');
-    });
-    return res;
-  },[finishedMatches,entries]);
-
-  const enrichedStandings=useMemo(()=>{
-    return standings.map(s=>{
-      const results=[...(managerResults[s.league_entry]||[])];
-      const finMs=finishedMatches.filter(m=>m.league_entry_1===s.league_entry||m.league_entry_2===s.league_entry);
-      let pf=0,pa=0,w=s.matches_won||0,d=s.matches_drawn||0,l=s.matches_lost||0;
-      finMs.forEach(m=>{const is1=m.league_entry_1===s.league_entry;pf+=is1?m.league_entry_1_points:m.league_entry_2_points;pa+=is1?m.league_entry_2_points:m.league_entry_1_points});
-      // Project current live GW into standings
-      const liveMs=gwMatches.filter(m=>(m.league_entry_1===s.league_entry||m.league_entry_2===s.league_entry)&&m.started&&!m.finished);
-      let livePF=0,livePA=0;
-      liveMs.forEach(m=>{
-        const is1=m.league_entry_1===s.league_entry;
-        const myId=is1?m.league_entry_1:m.league_entry_2;
-        const oppId=is1?m.league_entry_2:m.league_entry_1;
-        const myLive=getLive(myId,m.event);
-        const oppLive=getLive(oppId,m.event);
-        const myPts=myLive!==null?myLive:(is1?m.league_entry_1_points:m.league_entry_2_points)||0;
-        const oppPts=oppLive!==null?oppLive:(is1?m.league_entry_2_points:m.league_entry_1_points)||0;
-        livePF+=myPts;livePA+=oppPts;
-        if(myPts>oppPts){w++;results.push('W')}
-        else if(myPts<oppPts){l++;results.push('L')}
-        else{d++;results.push('D')}
-      });
-      const totalPF=pf+livePF,totalPA=pa+livePA;
-      const gp=finMs.length+liveMs.length||1;
-      return{...s,results,pf:totalPF,pa:totalPA,diff:totalPF-totalPA,avg:(totalPF/gp).toFixed(1),gp,w,d,l,pts:w*3+d};
-    }).sort((a,b)=>b.pts-a.pts||b.pf-a.pf);
-  },[standings,managerResults,finishedMatches,gwMatches,picks,liveData,bootstrap]);
-
-  // Classic standings (total points only, live)
-  const classicStandings=useMemo(()=>{
-    return entries.map(e=>{
-      // Sum finished GW points
-      let total=0;
-      finishedMatches.forEach(m=>{
-        if(m.league_entry_1===e.id) total+=m.league_entry_1_points||0;
-        else if(m.league_entry_2===e.id) total+=m.league_entry_2_points||0;
-      });
-      // Add live current GW points
-      const liveMs=gwMatches.filter(m=>(m.league_entry_1===e.id||m.league_entry_2===e.id)&&m.started&&!m.finished);
-      let liveTotal=0;
-      liveMs.forEach(m=>{
-        const is1=m.league_entry_1===e.id;
-        const myId=is1?m.league_entry_1:m.league_entry_2;
-        const lv=getLive(myId,m.event);
-        liveTotal=lv!==null?lv:(is1?m.league_entry_1_points:m.league_entry_2_points)||0;
-      });
-      // Also add finished current GW if it just finished
-      const finCurMs=gwMatches.filter(m=>(m.league_entry_1===e.id||m.league_entry_2===e.id)&&m.finished);
-      finCurMs.forEach(m=>{
-        // Only add if not already in finishedMatches
-        if(!finishedMatches.includes(m)){
-          if(m.league_entry_1===e.id) total+=m.league_entry_1_points||0;
-          else total+=m.league_entry_2_points||0;
-        }
-      });
-      return{entry:e,total:total+liveTotal};
-    }).sort((a,b)=>b.total-a.total);
-  },[entries,finishedMatches,gwMatches,picks,liveData,bootstrap]);
-
-  const records=useMemo(()=>{
-    let hi={s:0},lo={s:Infinity},big={m:0},close={m:Infinity};
-    finishedMatches.forEach(m=>{
-      const p1=m.league_entry_1_points,p2=m.league_entry_2_points;
-      [{id:m.league_entry_1,s:p1},{id:m.league_entry_2,s:p2}].forEach(t=>{
-        if(t.s>hi.s)hi={id:t.id,s:t.s,gw:m.event};
-        if(t.s<lo.s&&t.s>0)lo={id:t.id,s:t.s,gw:m.event};
-      });
-      const mg=Math.abs(p1-p2);
-      if(mg>big.m){big={id:p1>p2?m.league_entry_1:m.league_entry_2,m:mg,gw:m.event,sc:`${Math.max(p1,p2)}-${Math.min(p1,p2)}`}}
-      if(mg<close.m){close={m:mg,gw:m.event,sc:`${p1}-${p2}`,ids:[m.league_entry_1,m.league_entry_2]}}
-    });
-    if(lo.s===Infinity)lo={s:'–'};
-    // Most wins, best avg, longest streaks (excluding Average)
-    let mostWins={w:0},bestAvg={a:0},longestW={l:0},longestL={l:0};
-    enrichedStandings.filter(s=>{const e=mgr(s.league_entry);return e&&!isAvg(e)}).forEach(s=>{
-      if(s.matches_won>mostWins.w)mostWins={w:s.matches_won,id:s.league_entry};
-      const avg=parseFloat(s.avg)||0;
-      if(avg>bestAvg.a)bestAvg={a:avg,id:s.league_entry};
-      // Longest streaks
-      let cw=0,cl=0,mw=0,ml=0;
-      (s.results||[]).forEach(r=>{
-        if(r==='W'){cw++;cl=0;if(cw>mw)mw=cw}else if(r==='L'){cl++;cw=0;if(cl>ml)ml=cl}else{cw=0;cl=0}
-      });
-      if(mw>longestW.l)longestW={l:mw,id:s.league_entry};
-      if(ml>longestL.l)longestL={l:ml,id:s.league_entry};
-    });
-    return{hi,lo,big,close,mostWins,bestAvg,longestW,longestL};
-  },[finishedMatches,enrichedStandings]);
-
-  const gwAwards=useMemo(()=>{
-    if(!gwIsFinished)return null;
-    let best={s:0},closest={m:Infinity},biggest={m:0};
-    gwMatches.forEach(m=>{
-      const p1=m.league_entry_1_points,p2=m.league_entry_2_points;
-      [{id:m.league_entry_1,s:p1},{id:m.league_entry_2,s:p2}].forEach(t=>{if(t.s>best.s)best={id:t.id,s:t.s}});
-      const mg=Math.abs(p1-p2);
-      if(mg<closest.m)closest={m:mg,sc:`${p1}-${p2}`,ids:[m.league_entry_1,m.league_entry_2]};
-      if(mg>biggest.m)biggest={m:mg,sc:`${Math.max(p1,p2)}-${Math.min(p1,p2)}`,id:p1>p2?m.league_entry_1:m.league_entry_2};
-    });
-    return{best,closest,biggest};
-  },[gwMatches,gwIsFinished]);
-
-  const h2hGrid=useMemo(()=>{
-    const g={};entries.forEach(a=>{g[a.id]={};entries.forEach(b=>{if(a.id!==b.id)g[a.id][b.id]={w:0,d:0,l:0}})});
-    finishedMatches.forEach(m=>{
-      const p1=m.league_entry_1_points,p2=m.league_entry_2_points,a=m.league_entry_1,b=m.league_entry_2;
-      if(!g[a]?.[b])return;
-      if(p1>p2){g[a][b].w++;g[b][a].l++}else if(p2>p1){g[b][a].w++;g[a][b].l++}else{g[a][b].d++;g[b][a].d++}
-    });
-    return g;
-  },[finishedMatches,entries]);
-
+  // ── Live scoring ───────────────────────────────────────────
+  const teamCache=useMemo(()=>new Map(),[picks,liveData,bootstrap]);
+  function getTeam(lid,ev){
+    const k=lid+'-'+ev;
+    if(teamCache.has(k))return teamCache.get(k);
+    const t=calcTeam(picks[k],liveData[ev],bootstrap);
+    teamCache.set(k,t);return t;
+  }
   function getLive(lid,ev){
     const e=mgr(lid);
     if(e&&isAvg(e)){
@@ -393,225 +841,447 @@ function App(){
           if(id===opponentId) return; // skip opponent
           const mg2=mgr(id);
           if(mg2&&isAvg(mg2)) return; // double check
-          const p=picks[id+'-'+ev];
-          if(!p) return;
-          const t=calcTeam(p,liveData,bootstrap);
+          const t=getTeam(id,ev);
           if(t){sum+=t.total;count++}
         });
       });
       return count>0?Math.round(sum/count):null;
     }
-    const p=picks[lid+'-'+ev];if(!p)return null;
-    const t=calcTeam(p,liveData,bootstrap);return t?t.total:null;
+    const t=getTeam(lid,ev);return t?t.total:null;
   }
-  function mgr(id){return entries.find(e=>e.id===id)}
 
-  // ── Player Row ─────────────────────────────────────────────
-  function PR({p}){
-    const pos=POS[p.type]||'?',pc=POS_C[pos]||'#6e7d9a';
-    return(
-      <div className={'pl-row'+(p.subOut?' sub-out':'')+(p.subIn?' sub-in':'')}>
-        <div className="pl-left">
-          <span className="pos-tag" style={{color:pc,background:pc+'18'}}>{pos}</span>
-          <span className="pl-name">{p.name}</span>
-          {p.is_captain&&<span style={{fontSize:8,color:'var(--acc)',border:'1px solid var(--acc)',borderRadius:3,padding:'0 3px'}}>C</span>}
-          {p.subOut&&<span className="sub-arrow" style={{color:'var(--red)'}}>▼</span>}
-          {p.subIn&&<span className="sub-arrow" style={{color:'var(--acc)'}}>▲</span>}
-        </div>
-        <span className="pl-pts" style={{color:p.pts>6?'var(--acc)':p.pts===0?'var(--t3)':'var(--text)'}}>{p.pts}</span>
+  // ── Derived ────────────────────────────────────────────────
+  const gwMatches=useMemo(()=>allMatches.filter(m=>m.event===gw),[allMatches,gw]);
+  const curMatches=useMemo(()=>allMatches.filter(m=>m.event===curEvent),[allMatches,curEvent]);
+  const finishedMatches=useMemo(()=>allMatches.filter(m=>m.finished),[allMatches]);
+  const curIsLive=useMemo(()=>curMatches.some(m=>m.started&&!m.finished),[curMatches]);
+  const gwIsLive=gw===curEvent&&gwMatches.some(m=>m.started&&!m.finished);
+  const gwIsFinished=gwMatches.length>0&&gwMatches.every(m=>m.finished);
+  const gwNotStarted=gwMatches.length>0&&gwMatches.every(m=>!m.started);
+
+  const gwScores=useMemo(()=>gwMatches.map(m=>{
+    const isLive=m.started&&!m.finished;
+    const lp1=getLive(m.league_entry_1,m.event),lp2=getLive(m.league_entry_2,m.event);
+    const p1=(isLive&&lp1!==null)?lp1:(m.league_entry_1_points||0);
+    const p2=(isLive&&lp2!==null)?lp2:(m.league_entry_2_points||0);
+    return{m,isLive,p1,p2};
+  }),[gwMatches,allMatches,teamCache,entryById]);
+
+  const managerResults=useMemo(()=>{
+    const res={};entries.forEach(e=>{res[e.id]=[]});
+    [...finishedMatches].sort((a,b)=>a.event-b.event).forEach(m=>{
+      const p1=m.league_entry_1_points,p2=m.league_entry_2_points;
+      if(res[m.league_entry_1])res[m.league_entry_1].push(p1>p2?'W':p1<p2?'L':'D');
+      if(res[m.league_entry_2])res[m.league_entry_2].push(p2>p1?'W':p2<p1?'L':'D');
+    });
+    return res;
+  },[finishedMatches,entries]);
+
+  // H2H table, with the live gameweek projected in (whichever gameweek is being browsed)
+  const enrichedStandings=useMemo(()=>{
+    return standings.map(s=>{
+      const results=[...(managerResults[s.league_entry]||[])];
+      const finMs=finishedMatches.filter(m=>m.league_entry_1===s.league_entry||m.league_entry_2===s.league_entry);
+      let pf=0,pa=0,w=s.matches_won||0,d=s.matches_drawn||0,l=s.matches_lost||0;
+      finMs.forEach(m=>{const is1=m.league_entry_1===s.league_entry;pf+=is1?m.league_entry_1_points:m.league_entry_2_points;pa+=is1?m.league_entry_2_points:m.league_entry_1_points});
+      const offPts=w*3+d,offPF=pf;
+      const liveMs=curMatches.filter(m=>(m.league_entry_1===s.league_entry||m.league_entry_2===s.league_entry)&&m.started&&!m.finished);
+      let livePF=0,livePA=0,liveRes=null;
+      liveMs.forEach(m=>{
+        const is1=m.league_entry_1===s.league_entry;
+        const myId=is1?m.league_entry_1:m.league_entry_2;
+        const oppId=is1?m.league_entry_2:m.league_entry_1;
+        const myLive=getLive(myId,m.event);
+        const oppLive=getLive(oppId,m.event);
+        const myPts=myLive!==null?myLive:(is1?m.league_entry_1_points:m.league_entry_2_points)||0;
+        const oppPts=oppLive!==null?oppLive:(is1?m.league_entry_2_points:m.league_entry_1_points)||0;
+        livePF+=myPts;livePA+=oppPts;
+        if(myPts>oppPts){w++;results.push('W')}
+        else if(myPts<oppPts){l++;results.push('L')}
+        else{d++;results.push('D')}
+        liveRes={ev:m.event,pts:myPts,opp:oppId,oppPts,res:resultOf(myPts,oppPts)};
+      });
+      const totalPF=pf+livePF,totalPA=pa+livePA;
+      const played=finMs.length+liveMs.length;
+      const gp=played||1;
+      return{...s,results,liveCount:liveMs.length,liveRes,played,offPts,offPF,pf:totalPF,pa:totalPA,diff:totalPF-totalPA,avg:(totalPF/gp).toFixed(1),gp,w,d,l,pts:w*3+d};
+    }).sort((a,b)=>b.pts-a.pts||b.pf-a.pf);
+  },[standings,managerResults,finishedMatches,curMatches,allMatches,teamCache,entryById]);
+
+  // Positions count real managers only; the Average entry sits in the table unnumbered
+  const realStandings=useMemo(()=>enrichedStandings.filter(s=>{const e=mgr(s.league_entry);return e&&!isAvg(e)}),[enrichedStandings,entryById]);
+  const h2hPos=useMemo(()=>{const m=new Map();realStandings.forEach((s,i)=>m.set(s.league_entry,i+1));return m},[realStandings]);
+  const officialPos=useMemo(()=>{
+    const m=new Map();
+    [...realStandings].sort((a,b)=>b.offPts-a.offPts||b.offPF-a.offPF).forEach((s,i)=>m.set(s.league_entry,i+1));
+    return m;
+  },[realStandings]);
+
+  // Classic standings (total points only, live)
+  const classicStandings=useMemo(()=>{
+    return entries.map(e=>{
+      let total=0;
+      finishedMatches.forEach(m=>{
+        if(m.league_entry_1===e.id) total+=m.league_entry_1_points||0;
+        else if(m.league_entry_2===e.id) total+=m.league_entry_2_points||0;
+      });
+      const liveMs=curMatches.filter(m=>(m.league_entry_1===e.id||m.league_entry_2===e.id)&&m.started&&!m.finished);
+      let liveTotal=0;
+      liveMs.forEach(m=>{
+        const is1=m.league_entry_1===e.id;
+        const myId=is1?m.league_entry_1:m.league_entry_2;
+        const lv=getLive(myId,m.event);
+        liveTotal=lv!==null?lv:(is1?m.league_entry_1_points:m.league_entry_2_points)||0;
+      });
+      return{entry:e,total:total+liveTotal};
+    }).sort((a,b)=>b.total-a.total);
+  },[entries,finishedMatches,curMatches,allMatches,teamCache,entryById]);
+
+  // Season records from completed gameweeks only
+  const records=useMemo(()=>{
+    let hi={s:0},lo={s:Infinity},big={m:0},close={m:Infinity};
+    finishedMatches.forEach(m=>{
+      const p1=m.league_entry_1_points,p2=m.league_entry_2_points;
+      [{id:m.league_entry_1,s:p1},{id:m.league_entry_2,s:p2}].forEach(t=>{
+        if(t.s>hi.s)hi={id:t.id,s:t.s,gw:m.event};
+        if(t.s<lo.s&&t.s>0)lo={id:t.id,s:t.s,gw:m.event};
+      });
+      const mg=Math.abs(p1-p2);
+      if(mg>big.m){big={id:p1>p2?m.league_entry_1:m.league_entry_2,m:mg,gw:m.event,sc:`${Math.max(p1,p2)}–${Math.min(p1,p2)}`}}
+      if(mg<close.m){close={m:mg,gw:m.event,sc:`${p1}–${p2}`,ids:[m.league_entry_1,m.league_entry_2]}}
+    });
+    if(lo.s===Infinity)lo={s:'–'};
+    let mostWins={w:0},bestAvg={a:0},longestW={l:0},longestL={l:0};
+    realStandings.forEach(s=>{
+      if((s.matches_won||0)>mostWins.w)mostWins={w:s.matches_won,id:s.league_entry};
+      const fin=(managerResults[s.league_entry]||[]).length;
+      const avg=fin?+(s.offPF/fin).toFixed(1):0;
+      if(avg>bestAvg.a)bestAvg={a:avg,id:s.league_entry};
+      let cw=0,cl=0,mw=0,ml=0;
+      (managerResults[s.league_entry]||[]).forEach(r=>{
+        if(r==='W'){cw++;cl=0;if(cw>mw)mw=cw}else if(r==='L'){cl++;cw=0;if(cl>ml)ml=cl}else{cw=0;cl=0}
+      });
+      if(mw>longestW.l)longestW={l:mw,id:s.league_entry};
+      if(ml>longestL.l)longestL={l:ml,id:s.league_entry};
+    });
+    return{hi,lo,big,close,mostWins,bestAvg,longestW,longestL};
+  },[finishedMatches,realStandings,managerResults]);
+
+  // Gameweek awards from the scores on screen (live or final)
+  const gwAwards=useMemo(()=>{
+    if(!(gwIsFinished||gwIsLive)||!gwScores.length)return null;
+    let best={s:-Infinity},closest={m:Infinity},biggest={m:-1};
+    gwScores.forEach(({m,p1,p2})=>{
+      [{id:m.league_entry_1,s:p1},{id:m.league_entry_2,s:p2}].forEach(t=>{if(t.s>best.s)best={id:t.id,s:t.s}});
+      const mg=Math.abs(p1-p2);
+      if(mg<closest.m)closest={m:mg,sc:`${p1}–${p2}`,ids:[m.league_entry_1,m.league_entry_2]};
+      if(mg>biggest.m)biggest={m:mg,sc:`${Math.max(p1,p2)}–${Math.min(p1,p2)}`,id:p1>p2?m.league_entry_1:m.league_entry_2};
+    });
+    return{best,closest,biggest};
+  },[gwScores,gwIsFinished,gwIsLive]);
+
+  const h2hGrid=useMemo(()=>{
+    const g={};entries.forEach(a=>{g[a.id]={};entries.forEach(b=>{if(a.id!==b.id)g[a.id][b.id]={w:0,d:0,l:0}})});
+    finishedMatches.forEach(m=>{
+      const p1=m.league_entry_1_points,p2=m.league_entry_2_points,a=m.league_entry_1,b=m.league_entry_2;
+      if(!g[a]?.[b])return;
+      if(p1>p2){g[a][b].w++;g[b][a].l++}else if(p2>p1){g[b][a].w++;g[a][b].l++}else{g[a][b].d++;g[b][a].d++}
+    });
+    return g;
+  },[finishedMatches,entries]);
+
+  // Every completed score, for the season heatmap and per-team results strip
+  const season=useMemo(()=>{
+    const gws=[...new Set(finishedMatches.map(m=>m.event))].sort((a,b)=>a-b);
+    const by={};
+    finishedMatches.forEach(m=>{
+      const a=m.league_entry_1,b=m.league_entry_2,pa=m.league_entry_1_points||0,pb=m.league_entry_2_points||0;
+      (by[a]=by[a]||{})[m.event]={pts:pa,opp:b,oppPts:pb,res:resultOf(pa,pb)};
+      (by[b]=by[b]||{})[m.event]={pts:pb,opp:a,oppPts:pa,res:resultOf(pb,pa)};
+    });
+    let lo=Infinity,hi=-Infinity;
+    entries.forEach(e=>{if(isAvg(e))return;Object.values(by[e.id]||{}).forEach(c=>{lo=Math.min(lo,c.pts);hi=Math.max(hi,c.pts)})});
+    return{gws,by,lo,hi};
+  },[finishedMatches,entries]);
+  const heatStep=v=>season.hi>season.lo?Math.min(HEAT.length-1,Math.floor((v-season.lo)/(season.hi-season.lo)*HEAT.length)):3;
+
+  // Side of the pitch for one manager in a match
+  function sideData(lid,ev,score){
+    const e=mgr(lid),base={e,idx:ci(lid),name:displayName(e),score};
+    if(e&&isAvg(e)) return{...base,status:'avg'};
+    if(picksLoading[lid+'-'+ev]||picksLoading['live-'+ev]) return{...base,status:'loading'};
+    const t=getTeam(lid,ev);
+    if(!t||!t.starters.length) return{...base,status:'na'};
+    return{...base,status:'ok',team:t};
+  }
+
+  function pickTab(k){setTab(k);if(window.scrollY>0)window.scrollTo(0,0)}
+
+  // ── Render ─────────────────────────────────────────────────
+  if(loading)return<Boot/>;
+  if(error)return<Fail msg={error} onRetry={()=>{resetProxy();loadData(false)}}/>;
+
+  const managers=entries.filter(e=>!isAvg(e)).length;
+  const liveChip=curIsLive&&<span className="chip live"><i className="dot"/>Live GW{curEvent}</span>;
+  const lastReal=realStandings.length?realStandings[realStandings.length-1].league_entry:null;
+
+  // ── Gameweek view ──
+  function renderLive(){
+    const status=gwIsLive?'live':gwIsFinished?'final':gwNotStarted?'soon':null;
+    const lbl=gwIsLive?['Top score','Closest','Biggest lead']:['Top score','Closest','Biggest win'];
+    return(<>
+      <div className="gw-head">
+        <h2>Gameweek {gw}</h2>
+        {status==='live'&&<span className="chip live"><i className="dot"/>Live</span>}
+        {status==='final'&&<span className="chip final">Final</span>}
+        {status==='soon'&&<span className="chip soon">Upcoming</span>}
       </div>
+      <GwStrip max={maxGw} gw={gw} cur={curEvent} curLive={curIsLive} onPick={n=>{setGw(n);setExpanded(null)}}/>
+      {gwAwards&&<div className="gwnums">
+        <div><div className="k">{lbl[0]}</div><div className="v">{gwAwards.best.s}</div><div className="w">{displayName(mgr(gwAwards.best.id))}</div></div>
+        <div><div className="k">{lbl[1]}</div><div className="v">{gwAwards.closest.sc}</div><div className="w">{gwAwards.closest.ids.map(id=>getShort(mgr(id))).join(' v ')}</div></div>
+        <div><div className="k">{lbl[2]}</div><div className="v">{gwAwards.biggest.m>0?gwAwards.biggest.sc:'–'}</div><div className="w">{gwAwards.biggest.m>0?displayName(mgr(gwAwards.biggest.id)):'All level'}</div></div>
+      </div>}
+      {gwMatches.length===0
+        ?<p className="empty">No fixtures for gameweek {gw}.</p>
+        :<div className="fixtures">
+          {gwScores.map(({m,isLive,p1,p2},i)=>{
+            const open=expanded===i;
+            return(
+              <Fixture key={m.event+'-'+m.league_entry_1+'-'+m.league_entry_2} idx={i} m={m}
+                e1={mgr(m.league_entry_1)} e2={mgr(m.league_entry_2)} c1={ci(m.league_entry_1)} c2={ci(m.league_entry_2)}
+                p1={p1} p2={p2} isLive={isLive} notStarted={!m.started}
+                t1={isLive?getTeam(m.league_entry_1,m.event):null} t2={isLive?getTeam(m.league_entry_2,m.event):null}
+                open={open} onToggle={()=>{if(open)setExpanded(null);else{setExpanded(i);loadMatchPicks(m)}}}>
+                {open&&<Pitch top={sideData(m.league_entry_1,m.event,p1)} bottom={sideData(m.league_entry_2,m.event,p2)}/>}
+              </Fixture>
+            );
+          })}
+        </div>}
+    </>);
+  }
+
+  // ── H2H table ──
+  function renderTable(){
+    return(
+      <section className="sec">
+        <div className="sec-h"><h2>Head-to-head table</h2>{liveChip}</div>
+        <div className="tbl" aria-label="Head-to-head table">
+          <div className="thead" aria-hidden="true"><span>#</span><span>Team</span><span>PF</span><span>+/−</span><span>Pts</span></div>
+          {enrichedStandings.map(s=>{
+            const e=mgr(s.league_entry),av=!e||isAvg(e);
+            const pos=h2hPos.get(s.league_entry);
+            const mv=curIsLive&&pos&&officialPos.get(s.league_entry)?officialPos.get(s.league_entry)-pos:0;
+            const res=s.results||[];
+            const liveFrom=res.length-(s.liveCount||0);
+            const start=Math.max(0,res.length-5);
+            const open=openRow===s.league_entry;
+            const byGw=season.by[s.league_entry]||{};
+            return(
+              <div className={'tr'+(av?' avg':'')} key={s.league_entry}>
+                <button className="trow" aria-expanded={open} onClick={()=>setOpenRow(open?null:s.league_entry)}>
+                  <span className={'rk'+(pos===1?' top':'')}>{av?'–':pos}{mv!==0&&<span className={'mv '+(mv>0?'up':'down')} aria-label={(mv>0?'Up ':'Down ')+Math.abs(mv)}>{mv>0?'▲':'▼'}{Math.abs(mv)}</span>}</span>
+                  <span className="tm">
+                    <span className="l1">
+                      <Crest e={e} idx={ci(s.league_entry)} size={20}/>
+                      <span className="n">{displayName(e)}</span>
+                      {pos===1&&<span className="ico crown" title="Top of the table">{I.crown}</span>}
+                      {s.league_entry===lastReal&&realStandings.length>1&&<span className="ico spoon" title="Wooden spoon">{I.spoon}</span>}
+                    </span>
+                    <span className="l2">
+                      <span className="form">{res.slice(start).map((r,j)=><i key={j} className={'pill '+r+(start+j>=liveFrom?' lv':'')}>{r}</i>)}</span>
+                      <span className="wdl">{s.w}-{s.d}-{s.l}</span>
+                    </span>
+                  </span>
+                  <span className="cn">{s.pf}</span>
+                  <span className={'cn '+(s.diff>0?'pos':s.diff<0?'neg':'')}>{s.diff>0?'+':''}{s.diff}</span>
+                  <span className="cp">{s.pts}</span>
+                </button>
+                {open&&<div className="tdet">
+                  <div className="stats4">
+                    <div><span className="k">Played</span><span className="v">{s.played}</span></div>
+                    <div><span className="k">Won</span><span className="v">{s.w}</span></div>
+                    <div><span className="k">Drawn</span><span className="v">{s.d}</span></div>
+                    <div><span className="k">Lost</span><span className="v">{s.l}</span></div>
+                    <div><span className="k">Points for</span><span className="v">{s.pf}</span></div>
+                    <div><span className="k">Against</span><span className="v">{s.pa}</span></div>
+                    <div><span className="k">Per week</span><span className="v">{s.avg}</span></div>
+                    <div><span className="k">League pts</span><span className="v">{s.pts}</span></div>
+                  </div>
+                  <div className="season" aria-label="Score each gameweek">
+                    {season.gws.filter(g=>byGw[g]).map(g=><span className="g" key={g} title={`GW${g}: ${byGw[g].pts}–${byGw[g].oppPts} v ${displayName(mgr(byGw[g].opp))}`}><i className={'pill '+byGw[g].res}>{byGw[g].pts}</i><small>{g}</small></span>)}
+                    {s.liveRes&&<span className="g" title={`GW${s.liveRes.ev} live: ${s.liveRes.pts}–${s.liveRes.oppPts}`}><i className="pill lv">{s.liveRes.pts}</i><small>{s.liveRes.ev}</small></span>}
+                  </div>
+                </div>}
+              </div>
+            );
+          })}
+        </div>
+        <p className="note">Tap a team for its full record.{curIsLive?` Includes projected gameweek ${curEvent} results; arrows show movement if it finished now.`:''}</p>
+      </section>
     );
   }
 
-  // ── Render ─────────────────────────────────────────────────
-  if(loading)return<div className="center"><div className="spinner"/><div style={{color:'var(--t2)',fontSize:13}}>Loading league...</div></div>;
-  if(error)return<div className="center"><div className="err-box"><div style={{fontSize:26,marginBottom:6}}>⚠️</div><div style={{color:'var(--red)',fontWeight:700,marginBottom:4}}>Connection Error</div><div style={{color:'var(--t2)',fontSize:12,lineHeight:1.4}}>{error}</div><button className="retry" onClick={()=>{resetProxy();loadData(false)}}>Retry</button></div></div>;
+  // ── Classic ──
+  function renderClassic(){
+    const rows=classicStandings.filter(cs=>!isAvg(cs.entry));
+    const top=rows.length?rows[0].total:0;
+    return(
+      <section className="sec">
+        <div className="sec-h"><h2>Total points</h2>{liveChip}</div>
+        {rows.map((cs,i)=>{
+          const rank=i+1,h2h=h2hPos.get(cs.entry.id);
+          const luck=h2h?rank-h2h:0;
+          const pct=top>0?Math.max(0,cs.total)/top*100:0;
+          return(
+            <div className={'crow'+(rank===1?' lead':'')} key={cs.entry.id}>
+              <span className={'rk'+(rank===1?' top':'')}>{rank}</span>
+              <div className="tm">
+                <span className="l1"><Crest e={cs.entry} idx={ci(cs.entry.id)} size={20}/><span className="n">{displayName(cs.entry)}</span></span>
+                <div className="track"><div className="fill" style={{width:pct+'%'}}/></div>
+                <div className="meta">
+                  {h2h&&<span>{ordinal(h2h)} in H2H</span>}
+                  {luck>0&&<span className="luck good">Lucky by {luck}</span>}
+                  {luck<0&&<span className="luck bad">Unlucky by {-luck}</span>}
+                </div>
+              </div>
+              <span className="tot">{cs.total}{rank>1&&<small>−{top-cs.total}</small>}</span>
+            </div>
+          );
+        })}
+        <p className="note">Luck compares each team's H2H position with its total-points position. Lucky means the H2H spot is better than the points alone deserve.{curIsLive?` Includes live gameweek ${curEvent} points.`:''}</p>
+      </section>
+    );
+  }
+
+  // ── Records ──
+  function renderRecords(){
+    if(finishedMatches.length===0) return <section className="sec"><div className="sec-h"><h2>Season records</h2></div><p className="empty">Records start once the first gameweek is complete.</p></section>;
+    const who=(id,gwN)=>id!=null&&mgr(id)?displayName(mgr(id))+(gwN?`, gameweek ${gwN}`:''):'';
+    const plural=(n,one,many)=>n===1?one:many;
+    const single=[
+      {k:'Highest score',v:records.hi.s,w:who(records.hi.id,records.hi.gw)},
+      {k:'Lowest score',v:records.lo.s,w:who(records.lo.id,records.lo.gw)},
+      {k:'Biggest win',v:records.big.sc||'–',w:who(records.big.id,records.big.gw)},
+      {k:'Closest match',v:records.close.sc||'–',w:records.close.ids?records.close.ids.map(id=>getShort(mgr(id))).join(' v ')+`, gameweek ${records.close.gw}`:''},
+    ];
+    const run=[
+      {k:'Most wins',v:records.mostWins.w,w:who(records.mostWins.id)},
+      {k:'Best average',v:records.bestAvg.a,u:'pts',w:who(records.bestAvg.id)},
+      {k:'Longest winning run',v:records.longestW.l,u:plural(records.longestW.l,'win','wins'),w:who(records.longestW.id)},
+      {k:'Longest losing run',v:records.longestL.l,u:plural(records.longestL.l,'loss','losses'),w:who(records.longestL.id)},
+    ];
+    const recRow=r=>(
+      <div className="rec" key={r.k}>
+        <span className="k">{r.k}</span>
+        <span className="v">{r.v}{r.u&&<small>{r.u}</small>}</span>
+        <span className="who">{r.w||'–'}</span>
+      </div>
+    );
+    const rows=realStandings.map(s=>s.league_entry);
+    let read=<>Tap any score to see the match.</>;
+    if(heatSel){
+      const c=season.by[heatSel.lid]?.[heatSel.gw];
+      if(c){
+        const verb=c.res==='W'?'beat':c.res==='L'?'lost to':'drew with';
+        read=<>Gameweek {heatSel.gw}: <b>{displayName(mgr(heatSel.lid))}</b> {verb} {displayName(mgr(c.opp))}, <b>{c.pts}–{c.oppPts}</b></>;
+      }
+    }
+    return(
+      <section className="sec">
+        <div className="sec-h"><h2>Season records</h2></div>
+        <h3 className="sub-h">Single gameweek</h3>
+        {single.map(recRow)}
+        <h3 className="sub-h">Across the season</h3>
+        {run.map(recRow)}
+        <h3 className="sub-h">Every gameweek score</h3>
+        <p className="readout" aria-live="polite">{read}</p>
+        <EndScroller>
+          <table className="heat">
+            <thead><tr><th/>{season.gws.map(g=><th key={g} scope="col">{g}</th>)}</tr></thead>
+            <tbody>{rows.map(lid=>(
+              <tr key={lid}>
+                <th scope="row">{getShort(mgr(lid))}</th>
+                {season.gws.map(g=>{
+                  const c=season.by[lid]?.[g];
+                  if(!c) return <td key={g}/>;
+                  const bg=HEAT[heatStep(c.pts)];
+                  const sel=heatSel&&heatSel.lid===lid&&heatSel.gw===g;
+                  return <td key={g}><button style={{background:bg,color:inkOn(bg)}} aria-pressed={!!sel}
+                    aria-label={`${displayName(mgr(lid))}, gameweek ${g}: ${c.pts} points`}
+                    onClick={()=>setHeatSel(sel?null:{lid,gw:g})}>{c.pts}</button></td>;
+                })}
+              </tr>
+            ))}</tbody>
+          </table>
+        </EndScroller>
+        <div className="scale" aria-hidden="true"><span>{season.lo}</span><span className="sw">{HEAT.map(h=><i key={h} style={{background:h}}/>)}</span><span>{season.hi} pts</span></div>
+        <p className="note">Brighter means a bigger score. Completed gameweeks only.</p>
+      </section>
+    );
+  }
+
+  // ── H2H grid ──
+  function renderH2H(){
+    if(finishedMatches.length===0) return <section className="sec"><div className="sec-h"><h2>Head-to-head records</h2></div><p className="empty">Head-to-head records start once the first gameweek is complete.</p></section>;
+    const order=enrichedStandings.map(s=>mgr(s.league_entry)).filter(Boolean);
+    const cellBg=net=>net>0?DIV_WIN[Math.min(3,net)-1]:net<0?DIV_LOSS[Math.min(3,-net)-1]:DIV_MID;
+    return(
+      <section className="sec">
+        <div className="sec-h"><h2>Head-to-head records</h2></div>
+        <div className="scroll-x">
+          <table className="mx">
+            <thead><tr><th/>{order.map(e=><th key={e.id} scope="col" className={isAvg(e)?'avg':''}>{getShort(e)}</th>)}</tr></thead>
+            <tbody>{order.map(a=>(
+              <tr key={a.id}>
+                <th scope="row" className={isAvg(a)?'avg':''}>{getShort(a)}</th>
+                {order.map(b=>{
+                  if(a.id===b.id) return <td key={b.id} className="self"/>;
+                  const r=h2hGrid[a.id]?.[b.id];
+                  if(!r||r.w+r.d+r.l===0) return <td key={b.id} className="none">·</td>;
+                  const bg=cellBg(r.w-r.l);
+                  return <td key={b.id} style={{background:bg,color:inkOn(bg)}} title={`${displayName(a)} v ${displayName(b)}: won ${r.w}, drawn ${r.d}, lost ${r.l}`}>{r.w}-{r.d}-{r.l}</td>;
+                })}
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <div className="scale" aria-hidden="true"><span>Losing record</span><span className="sw">{[...DIV_LOSS].reverse().concat([DIV_MID],DIV_WIN).map(h=><i key={h} style={{background:h}}/>)}</span><span>Winning record</span></div>
+        <p className="note">Each cell is the row team's won-drawn-lost record against the column team, completed gameweeks only.</p>
+      </section>
+    );
+  }
 
   return(
-    <div className="app">
-      <div className="hdr">
-        <div className="hdr-top">
-          <div>
-            <div className="logo">⚽ FPL Draft<span className="h2h-pill">H2H</span></div>
-            <div className="league-sub">{league?.name||'League'} — {entries.filter(e=>!isAvg(e)).length} managers</div>
-          </div>
-          <button className={'refresh-btn'+(refreshing?' spinning':'')} onClick={()=>{resetProxy();loadData(true)}}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
-            {lastRefresh?lastRefresh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'Refresh'}
+    <div className={'app'+(refreshing?' refreshing':'')}>
+      <header className="mast">
+        <div className="bar">
+          <span className="wordmark">FPL Draft<em>H2H</em></span>
+          <button className={'refresh'+(refreshing?' busy':'')} onClick={()=>{resetProxy();loadData(true)}}
+            aria-label={'Refresh'+(lastRefresh?', last updated '+lastRefresh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'')}>
+            {I.refresh}<span>{lastRefresh?lastRefresh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'Refresh'}</span>
           </button>
         </div>
-        <div className="gw-row">
-          {Array.from({length:maxGw},(_,i)=><button key={i} className={'gw-chip '+(gw===i+1?'on':'off')} onClick={()=>{setGw(i+1);setExpanded(null)}}>{i+1}</button>)}
-          <span className="gw-label">GW {gw}
-            {gwIsLive&&<span className="gw-badge live">In Progress</span>}
-            {gwIsFinished&&<span className="gw-badge final">Final</span>}
-            {gwNotStarted&&<span className="gw-badge final">Upcoming</span>}
-          </span>
-        </div>
-        <div className="tabs">
-          {[['live','Live GW'],['standings','Standings'],['classic','Classic'],['stats','Stats'],['h2h','H2H Grid']].map(([k,l])=>
-            <button key={k} className={'tab '+(tab===k?'on':'off')} onClick={()=>setTab(k)}>{l}</button>
-          )}
-        </div>
-      </div>
+        <h1>{league?.name||'League'}</h1>
+        <p className="sub">{managers} managers, gameweek {curEvent}</p>
+      </header>
 
-      <div className="cnt" key={tab+gw}>
+      <main className="content" key={tab}>
+        {tab==='live'&&renderLive()}
+        {tab==='table'&&renderTable()}
+        {tab==='classic'&&renderClassic()}
+        {tab==='records'&&renderRecords()}
+        {tab==='h2h'&&renderH2H()}
+      </main>
+      <p className="foot">League {LEAGUE_ID}, v{VERSION}</p>
 
-        {/* ═══ LIVE GW ═══ */}
-        {tab==='live'&&<div>
-          {gwAwards&&<div className="awards">
-            <div className="award"><span className="award-icon">🏆</span><div><div className="award-label">Highest Scorer</div><div className="award-val">{displayName(mgr(gwAwards.best.id))} — <span style={{color:'var(--acc)'}}>{gwAwards.best.s} pts</span></div></div></div>
-            <div className="award"><span className="award-icon">🤏</span><div><div className="award-label">Closest Match</div><div className="award-val">{gwAwards.closest.ids?.map(id=>getShort(mgr(id))).join(' vs ')} — {gwAwards.closest.sc}</div></div></div>
-            <div className="award"><span className="award-icon">💥</span><div><div className="award-label">Biggest Win</div><div className="award-val">{displayName(mgr(gwAwards.biggest.id))} — {gwAwards.biggest.sc}</div></div></div>
-          </div>}
-          {gwMatches.length===0&&<div style={{textAlign:'center',color:'var(--t2)',padding:40}}>No matches for GW{gw}</div>}
-          <div style={{display:'flex',flexDirection:'column',gap:10}}>
-            {gwMatches.map((m,i)=>{
-              const e1=mgr(m.league_entry_1),e2=mgr(m.league_entry_2);
-              const isLive=m.started&&!m.finished;
-              const lp1=getLive(m.league_entry_1,m.event),lp2=getLive(m.league_entry_2,m.event);
-              const p1=(isLive&&lp1!==null)?lp1:(m.league_entry_1_points||0);
-              const p2=(isLive&&lp2!==null)?lp2:(m.league_entry_2_points||0);
-              const hW=p1>p2,aW=p2>p1,dr=p1===p2,tot=p1+p2||1;
-              const isExp=expanded===i;
-              const k1=m.league_entry_1+'-'+m.event,k2=m.league_entry_2+'-'+m.event;
-              const av1=e1&&isAvg(e1),av2=e2&&isAvg(e2);
-              return(
-                <div key={i} className="card">
-                  <div className="match" onClick={()=>{if(isExp)setExpanded(null);else{setExpanded(i);loadMatchPicks(m)}}}>
-                    {isLive&&<div className="live-dot"><div className="pulse"/><span className="live-txt">Live</span></div>}
-                    <div className="match-teams">
-                      <div className="match-side"><div className={'match-name'+(av1?' avg-team':'')} style={{color:hW?'var(--acc)':'var(--t2)'}}>{displayName(e1)}</div><div className="match-pts" style={{color:hW?'var(--acc)':dr?'var(--text)':'var(--t2)'}}>{p1}</div></div>
-                      <div className="match-vs">vs</div>
-                      <div className="match-side"><div className={'match-name'+(av2?' avg-team':'')} style={{color:aW?'var(--acc)':'var(--t2)'}}>{displayName(e2)}</div><div className="match-pts" style={{color:aW?'var(--acc)':dr?'var(--text)':'var(--t2)'}}>{p2}</div></div>
-                    </div>
-                    <div className="bar-track"><div className="bar-fill" style={{width:(p1/tot*100)+'%',background:hW?'var(--acc)':dr?'var(--t2)':'var(--red)'}}/><div className="bar-fill" style={{width:(p2/tot*100)+'%',background:aW?'var(--acc)':dr?'var(--t2)':'var(--red)'}}/></div>
-                    <div className="tap-hint">Tap for squad breakdown</div>
-                  </div>
-                  {isExp&&<div className="expand">
-                    {[{lid:m.league_entry_1,k:k1},{lid:m.league_entry_2,k:k2}].map(({lid,k})=>{
-                      const mg=mgr(lid),tp=picks[k],ld=picksLoading[k];
-                      const team=tp?calcTeam(tp,liveData,bootstrap):null;
-                      const av=mg&&isAvg(mg);
-                      return<div key={k}>
-                        <div className="exp-title" style={av?{fontStyle:'italic',opacity:.5}:{}}>{av?'Average':mg?getName(mg):'Unknown'}</div>
-                        {ld&&<div style={{color:'var(--t2)',fontSize:10}}>Loading...</div>}
-                        {!ld&&!team&&<div style={{color:'var(--t2)',fontSize:10}}>Unavailable</div>}
-                        {team&&<>
-                          {team.starters.sort((a,b)=>a.type-b.type).map((p,j)=><PR key={j} p={p}/>)}
-                          <div style={{fontSize:9,color:'var(--t3)',marginTop:6,marginBottom:2,textTransform:'uppercase',letterSpacing:.8}}>Bench</div>
-                          {team.bench.map((p,j)=><PR key={j} p={p}/>)}
-                        </>}
-                      </div>;
-                    })}
-                  </div>}
-                </div>
-              );
-            })}
-          </div>
-        </div>}
-
-        {/* ═══ STANDINGS ═══ */}
-        {tab==='standings'&&<div>
-          {gwIsLive&&<div style={{fontSize:10,color:'var(--acc)',marginBottom:8,display:'flex',alignItems:'center',gap:4}}><div className="pulse" style={{width:5,height:5}}/> Includes projected GW{gw} results</div>}
-          <div className="tbl-wrap"><table><thead><tr>
-            {['#','Team','W','D','L','Pts','PF','PA','±','Avg','Form'].map(h=><th key={h} style={{textAlign:h==='Team'?'left':'center'}}>{h}</th>)}
-          </tr></thead><tbody>
-            {enrichedStandings.map((s,i)=>{
-              const e=mgr(s.league_entry),av=e&&isAvg(e),form=(s.results||[]).slice(-5);
-              return<tr key={s.league_entry} style={{background:i===0?'rgba(0,255,135,.03)':'transparent'}}>
-                <td style={{textAlign:'center',fontWeight:800,color:i===0?'var(--acc)':i>=entries.length-1?'var(--red)':'var(--t2)'}}>{i+1}</td>
-                <td style={{fontWeight:700,fontSize:11,whiteSpace:'nowrap'}} className={av?'avg-team':''}>{displayName(e)}</td>
-                <td style={{textAlign:'center',color:'var(--acc)',fontWeight:600}}>{s.w}</td>
-                <td style={{textAlign:'center',color:'var(--t2)'}}>{s.d}</td>
-                <td style={{textAlign:'center',color:'var(--red)'}}>{s.l}</td>
-                <td style={{textAlign:'center',fontWeight:900,fontSize:14}}>{s.pts}</td>
-                <td style={{textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{s.pf}</td>
-                <td style={{textAlign:'center',fontVariantNumeric:'tabular-nums',color:'var(--t2)'}}>{s.pa}</td>
-                <td style={{textAlign:'center',fontWeight:700,color:s.diff>0?'var(--acc)':s.diff<0?'var(--red)':'var(--t2)'}}>{s.diff>0?'+':''}{s.diff}</td>
-                <td style={{textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{s.avg}</td>
-                <td style={{textAlign:'center'}}><div className="form-dots">{form.map((r,j)=><div key={j} className="fdot" style={{background:r==='W'?'var(--acc)':r==='L'?'var(--red)':'#6b7280'}}/>)}</div></td>
-              </tr>;
-            })}
-          </tbody></table></div>
-        </div>}
-
-        {/* ═══ CLASSIC ═══ */}
-        {tab==='classic'&&<div>
-          <div className="section">📋 Classic Standings</div>
-          {gwIsLive&&<div style={{fontSize:10,color:'var(--acc)',marginBottom:8,display:'flex',alignItems:'center',gap:4}}><div className="pulse" style={{width:5,height:5}}/> Includes live GW{gw} points</div>}
-          <div className="tbl-wrap"><table><thead><tr>
-            {['#','Team','Total Pts','H2H','vs H2H'].map(h=><th key={h} style={{textAlign:h==='Team'?'left':'center'}}>{h}</th>)}
-          </tr></thead><tbody>
-            {classicStandings.filter(cs=>!isAvg(cs.entry)).map((cs,i)=>{
-              // Find this team's H2H rank
-              const h2hIdx=enrichedStandings.findIndex(s=>s.league_entry===cs.entry.id);
-              const h2hRank=h2hIdx>=0?h2hIdx+1:'–';
-              const classicRank=i+1;
-              const diff=typeof h2hRank==='number'?h2hRank-classicRank:0;
-              return<tr key={cs.entry.id} style={{background:i===0?'rgba(0,255,135,.03)':'transparent'}}>
-                <td style={{textAlign:'center',fontWeight:800,color:i===0?'var(--acc)':i>=classicStandings.filter(c=>!isAvg(c.entry)).length-1?'var(--red)':'var(--t2)'}}>{classicRank}</td>
-                <td style={{fontWeight:700,fontSize:12,whiteSpace:'nowrap'}}>{displayName(cs.entry)}</td>
-                <td style={{textAlign:'center',fontWeight:900,fontSize:16,fontVariantNumeric:'tabular-nums'}}>{cs.total}</td>
-                <td style={{textAlign:'center',fontVariantNumeric:'tabular-nums',color:'var(--t2)',fontWeight:600}}>{h2hRank}</td>
-                <td style={{textAlign:'center',fontWeight:700,fontSize:12,color:diff>0?'var(--acc)':diff<0?'var(--red)':'var(--t2)'}}>{diff>0?'▲'+diff:diff<0?'▼'+Math.abs(diff):'–'}</td>
-              </tr>;
-            })}
-          </tbody></table></div>
-          <div style={{fontSize:10,color:'var(--t3)',marginTop:6}}>vs H2H: ▲ = ranked higher in Classic than H2H</div>
-        </div>}
-
-        {/* ═══ STATS ═══ */}
-        {tab==='stats'&&<div>
-          {finishedMatches.length===0?<div style={{textAlign:'center',color:'var(--t2)',padding:40}}>No completed gameweeks yet</div>:<>
-            <div className="section">🏅 Season Records</div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
-              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🏆</div><div className="stat-label">Highest GW</div><div className="stat-val" style={{color:'var(--acc)'}}>{records.hi.s}</div><div className="stat-sub">{displayName(mgr(records.hi.id))} — GW{records.hi.gw}</div></div>
-              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">📉</div><div className="stat-label">Lowest GW</div><div className="stat-val" style={{color:'var(--red)'}}>{records.lo.s}</div><div className="stat-sub">{records.lo.id?displayName(mgr(records.lo.id)):''}{records.lo.gw?' — GW'+records.lo.gw:''}</div></div>
-            </div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
-              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">💥</div><div className="stat-label">Biggest Win</div><div className="stat-val" style={{color:'var(--cyan)'}}>{records.big.sc||'–'}</div><div className="stat-sub">{records.big.id?displayName(mgr(records.big.id)):''}{records.big.gw?' — GW'+records.big.gw:''}</div></div>
-              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🤏</div><div className="stat-label">Closest Match</div><div className="stat-val" style={{color:'var(--amber)'}}>{records.close.sc||'–'}</div><div className="stat-sub">{records.close.ids?records.close.ids.map(id=>getShort(mgr(id))).join(' vs '):''}{records.close.gw?' — GW'+records.close.gw:''}</div></div>
-            </div>
-
-            <div className="section" style={{marginTop:8}}>👑 Manager Awards</div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
-              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🥇</div><div className="stat-label">Most Wins</div><div className="stat-val" style={{color:'var(--acc)'}}>{records.mostWins.w}</div><div className="stat-sub">{displayName(mgr(records.mostWins.id))}</div></div>
-              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">📊</div><div className="stat-label">Best Avg Pts/GW</div><div className="stat-val" style={{color:'var(--acc)'}}>{records.bestAvg.a}</div><div className="stat-sub">{displayName(mgr(records.bestAvg.id))}</div></div>
-            </div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
-              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🔥</div><div className="stat-label">Longest Win Streak</div><div className="stat-val" style={{color:'var(--acc)'}}>{records.longestW.l} {records.longestW.l===1?'win':'wins'}</div><div className="stat-sub">{displayName(mgr(records.longestW.id))}</div></div>
-              <div className="stat-card" style={{flex:'1 1 140px'}}><div className="stat-icon">🥶</div><div className="stat-label">Longest Loss Streak</div><div className="stat-val" style={{color:'var(--red)'}}>{records.longestL.l} {records.longestL.l===1?'loss':'losses'}</div><div className="stat-sub">{displayName(mgr(records.longestL.id))}</div></div>
-            </div>
-          </>}
-        </div>}
-
-        {/* ═══ H2H GRID ═══ */}
-        {tab==='h2h'&&<div>
-          <div className="section">Head-to-Head Records</div>
-          {finishedMatches.length===0?<div style={{textAlign:'center',color:'var(--t2)',padding:40}}>No completed gameweeks yet</div>:
-          <div className="tbl-wrap"><table style={{fontSize:10}}><thead><tr>
-            <th style={{position:'sticky',left:0,background:'var(--bg)',zIndex:2,minWidth:36}}></th>
-            {entries.map(e=><th key={e.id} style={{textAlign:'center',minWidth:48}}>{isAvg(e)?'AVG':getShort(e)}</th>)}
-          </tr></thead><tbody>
-            {entries.map(e1=>{const av1=isAvg(e1);return<tr key={e1.id}>
-              <td style={{fontWeight:700,color:av1?'var(--t3)':'var(--acc)',position:'sticky',left:0,background:'var(--s1)',zIndex:1,fontSize:10}} className={av1?'avg-team':''}>{av1?'AVG':getShort(e1)}</td>
-              {entries.map(e2=>{
-                if(e1.id===e2.id)return<td key={e2.id} className="h2h-cell" style={{background:'var(--s2)'}}>—</td>;
-                const r=h2hGrid[e1.id]?.[e2.id];if(!r)return<td key={e2.id} className="h2h-cell">-</td>;
-                const bg=r.w>r.l?'rgba(0,255,135,.07)':r.l>r.w?'rgba(255,71,87,.07)':'transparent';
-                return<td key={e2.id} className="h2h-cell" style={{background:bg}}><span style={{color:'var(--acc)',fontWeight:700}}>{r.w}</span><span style={{color:'var(--t3)'}}>{'-'+r.d+'-'}</span><span style={{color:'var(--red)',fontWeight:700}}>{r.l}</span></td>;
-              })}
-            </tr>})}
-          </tbody></table></div>}
-          <div style={{marginTop:6,fontSize:10,color:'var(--t3)'}}>W-D-L from row team's view • Completed GWs only</div>
-        </div>}
-      </div>
-      <div className="footer">v2.0 • League {LEAGUE_ID}</div>
+      <nav className="dock" role="tablist" aria-label="Views">
+        {TABS.map(([k,l,ic])=><button key={k} role="tab" aria-selected={tab===k} onClick={()=>pickTab(k)}>{ic}<span>{l}</span></button>)}
+      </nav>
     </div>
   );
 }
-ReactDOM.render(<App/>,document.getElementById('root'));
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
